@@ -196,7 +196,7 @@ def main():
 
             #Start a menu to choose what to do
 
-            choicechoice = menu(["Allow for cube colorizer colors ($color)","Add Types","Asset Packer","Remove Item","Input Editor","Output Editor","","----------------","Back"])
+            choicechoice = menu(["Add Types","Asset Packer","Remove Item","Input Editor","Output Editor","","----------------","Back"])
             #Add/Remove input
             if choicechoice == "Back":
                 pass
@@ -377,7 +377,10 @@ def main():
                             for x in range(removeline,len(list)):
                                 file.write(f"{list[x]}\n")
                         log("Input made. (input,FireUser1,,0,-1),(input,FireUser2,,0,-1)")
-                        time.sleep(2)
+                        while True:
+                            if keyboard.is_pressed("Enter"):
+                                break
+
                     else:
                         log("Error! There is already an input!")
                         time.sleep(2)
@@ -432,7 +435,9 @@ def main():
                             for x in range(removeline,len(list)):
                                 file.write(f"{list[x]}\n")
                         log("Output made. (instance:Output;OnUser1),(instance:Output;OnUser2)")
-                        time.sleep(2)
+                        while True:
+                            if keyboard.is_pressed("Enter"):
+                                break
                     else:
                         log("Error! There is already an input!")
                         time.sleep(2)
