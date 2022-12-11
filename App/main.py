@@ -511,6 +511,8 @@ def main():
                     pass
                 log(f'Removed item in resources folder. ({items[f"{intvalue}_Name"]})')
                 log(f'Removed item. ({items[f"{intvalue}_Name"]})')
+            else:
+                pass
 
     else:
         
