@@ -8,14 +8,6 @@
 			"Switch"
 			{
 				"Flag" "instVar"
-				"$timer_delay == 1"
-				{
-					VAR(PATH)
-				}
-				"$timer_delay == 2"
-				{
-					VAR(PATH)
-				}
 				"$timer_delay == 3"
 				{
 					VAR(PATH)

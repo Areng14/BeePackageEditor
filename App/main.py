@@ -208,26 +208,30 @@ def main():
                     inputinsert = '"TimerDelay"\n{\n"DefaultValue" "1"\n"Index" "2"\n}'
                     checkfor = "TimerDelay"
                     datafile = "data/Timerdata.bpe_data"
+                    num = 3
                 if choice == "Cube Type":
                     inputinsert = '"CubeType"\n{\n"DefaultValue" "1"\n"Index" "2"\n}'
                     checkfor = "CubeType"
                     datafile = "data/Cubedata.bpe_data"
+                    num = 0
                 if choice == "Button Type":
                     inputinsert = '"ButtonType"\n{\n"DefaultValue" "1"\n"Index" "2"\n}'
                     checkfor = "ButtonType"
                     datafile = "data/Buttondata.bpe_data"
+                    num = 0
                 if choice == "Start Enabled":
                     inputinsert = '"StartEnabled"\n{\n"DefaultValue" "1"\n"Index" "2"\n}'
                     checkfor = "StartEnabled"
                     datafile = "data/Enabledata.bpe_data"
+                    num = 1
                 if choice == "Start Reversed":
                     inputinsert = '"StartReversed"\n{\n"DefaultValue" "1"\n"Index" "2"\n}'
                     checkfor = "StartReversed"
                     datafile = "data/Reversedata.bpe_data"
+                    num = 1
                 if datafile != False:
                     with open(os.path.join(path,datafile),"r") as file:
                         listv = file.read().replace("\t","").split("\n")
-                    num = 0
                     for x in range(len(listv)):
                         if listv[x] == 'VAR(ID)':
                             listv[x] = f'"instance" "<{items[f"{intvalue}_ID"].replace(" ","")}>"'
