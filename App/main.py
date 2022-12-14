@@ -153,6 +153,7 @@ def main():
                             readervar = ""
             log(items)
             #Finished with getting information from info.txt
+            #We will rescan this later when button is finished
 
             #Start a menu
             while True:
@@ -196,35 +197,52 @@ def main():
 
             #Start a menu to choose what to do
 
-            choicechoice = menu(["Add Types","Asset Packer","Remove Item","Input Editor","Output Editor","","----------------","Back"])
+            choicechoice = menu(["Add Types","Asset Packer","Remove Item","Input Editor","Output Editor","Instance Packer","","----------------","Back"])
             #Add/Remove input
             if choicechoice == "Back":
                 pass
             
+            if choicechoice == "Instance Packer":
+                print(f"We have made a folder called inst_pack.\nPlease move your instance files to this folder.")
+                os.mkdir(os.path.join(path,"inst_pack"))
+                while True:
+                    if os.listdir(os.path.join(path,"inst_pack")) != []:
+                        break
+                log(f'Detected a file in {os.path.join(path,"inst_pack")}')
+                source = os.path.join(path,os.path.join("inst_pack",os.listdir(os.path.join(path,"inst_pack"))[0]))
+                dest = f'{path}/package/resources/instances/beepkg/{items[f"{intvalue}_Name"]}/{items[f"{intvalue}_Name"]}'
+                while os.path.isfile(f'{dest}/num'):
+                    num += 1
+                dest = f'{path}/package/resources/instances/beepkg/{items[f"{intvalue}_Name"]}/{items[f"{intvalue}_Name"]}_{num}'
+                os.rename(source,dest)
+                os.rmdir(os.path.join(path,"inst_pack"))
+                log("Finished with packing instances")
+
+
             if choicechoice == "Add Types":
-                choice = menu(["Timer Type","Cube Type","Button Type","Start Enabled","Start Reversed","","----------------","Back"])
+                choice = menu(["Timer Type [30]","Cube Type [5]","Button Type [3]","Start Enabled [1]","Start Reversed [1]","","----------------","Back"])
                 datafile = False
-                if choice == "Timer Type":
+                if choice == "Timer Type [30]":
                     inputinsert = '"TimerDelay"\n{\n"DefaultValue" "1"\n"Index" "2"\n}'
                     checkfor = "TimerDelay"
                     datafile = "data/Timerdata.bpe_data"
                     num = 3
-                if choice == "Cube Type":
+                if choice == "Cube Type [5]":
                     inputinsert = '"CubeType"\n{\n"DefaultValue" "1"\n"Index" "2"\n}'
                     checkfor = "CubeType"
                     datafile = "data/Cubedata.bpe_data"
                     num = 0
-                if choice == "Button Type":
+                if choice == "Button Type [3]":
                     inputinsert = '"ButtonType"\n{\n"DefaultValue" "1"\n"Index" "2"\n}'
                     checkfor = "ButtonType"
                     datafile = "data/Buttondata.bpe_data"
                     num = 0
-                if choice == "Start Enabled":
+                if choice == "Start Enabled [1]":
                     inputinsert = '"StartEnabled"\n{\n"DefaultValue" "1"\n"Index" "2"\n}'
                     checkfor = "StartEnabled"
                     datafile = "data/Enabledata.bpe_data"
                     num = 1
-                if choice == "Start Reversed":
+                if choice == "Start Reversed [1]":
                     inputinsert = '"StartReversed"\n{\n"DefaultValue" "1"\n"Index" "2"\n}'
                     checkfor = "StartReversed"
                     datafile = "data/Reversedata.bpe_data"
