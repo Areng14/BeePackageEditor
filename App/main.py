@@ -9,6 +9,23 @@ from math import ceil
 import time
 
 
+def findp2dir():
+    leter = "ABCDEFGHIJKLMNOPQRSTUVWXZY"
+    for x in leter:
+        if os.path.isdir(f"{x}:\Program Files (x86)\Steam\steamapps\common\Portal 2") == True:
+            return f"{x}:\Program Files (x86)\Steam\steamapps\common\Portal 2"
+        if os.path.isdir(f"{x}:\SteamLibrary\steamapps\common\Portal 2") == True:
+            return f"{x}:\Program Files (x86)\Steam\steamapps\common\Portal 2"
+    #Checks for p2's directory
+
+def findmaxdlc():
+    pointer = 1
+    while True:
+        if os.path.isdir(os.path.join(findp2dir(),f"portal2_dlc{pointer}")) == False:
+            return pointer
+        pointer += 1
+        
+
 def menu(options,cursorop="[ ",selectcolor=Fore.GREEN):
     init(convert=True)
     pagenum = 1
@@ -96,9 +113,9 @@ def main():
     def log(text):
         with open(os.path.join(path,f"logs/BPE_LOG[{timev}].txt"), 'a') as file:
             file.write(str(text) + "\n")
-            print(text)
+            print(f"[LOGS IGNORE!] {text}")
 
-    path = sys.executable.replace(os.path.basename(sys.executable),"")
+    path = __file__.replace(os.path.basename(__file__),"")
     if os.path.isfile(os.path.join(path,"package/info.txt")) == True:
         while True:
             with open(os.path.join(path,"package/info.txt"), 'r') as file:
@@ -197,27 +214,10 @@ def main():
 
             #Start a menu to choose what to do
 
-            choicechoice = menu(["Add Types","Asset Packer","Remove Item","Input Editor","Output Editor","Instance Packer","","----------------","Back"])
+            choicechoice = menu(["Add Types","Asset Packer","Remove Item","Input Editor","Output Editor","Hole Maker","","----------------","Back"])
             #Add/Remove input
             if choicechoice == "Back":
                 pass
-            
-            if choicechoice == "Instance Packer":
-                print(f"We have made a folder called inst_pack.\nPlease move your instance files to this folder.")
-                os.mkdir(os.path.join(path,"inst_pack"))
-                while True:
-                    if os.listdir(os.path.join(path,"inst_pack")) != []:
-                        break
-                log(f'Detected a file in {os.path.join(path,"inst_pack")}')
-                source = os.path.join(path,os.path.join("inst_pack",os.listdir(os.path.join(path,"inst_pack"))[0]))
-                dest = f'{path}/package/resources/instances/beepkg/{items[f"{intvalue}_Name"]}/{items[f"{intvalue}_Name"]}'
-                while os.path.isfile(f'{dest}/num'):
-                    num += 1
-                dest = f'{path}/package/resources/instances/beepkg/{items[f"{intvalue}_Name"]}/{items[f"{intvalue}_Name"]}_{num}'
-                os.rename(source,dest)
-                os.rmdir(os.path.join(path,"inst_pack"))
-                log("Finished with packing instances")
-
 
             if choicechoice == "Add Types":
                 choice = menu(["Timer Type [30]","Cube Type [5]","Button Type [3]","Start Enabled [1]","Start Reversed [1]","","----------------","Back"])
@@ -268,12 +268,12 @@ def main():
                     leng = 0
                     Inputverify = False
                     with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"r") as file:
-                        list = file.read().replace("\t","").split("\n")
-                    for x in range(len(list)):
-                        if list[x] == '"Properties"':
+                        listvvv = file.read().replace("\t","").split("\n")
+                    for x in range(len(listvvv)):
+                        if listvvv[x] == '"Properties"':
                             removeline = x + 7
                             endremoveline = x + 11
-                        if list[x] == '"Index" "2"':
+                        if listvvv[x] == '"Index" "2"':
                             Inputverify = True
                     log(f"Removelinevar = {removeline}")
                     log(f"Inputverify = {Inputverify}")
@@ -295,19 +295,19 @@ def main():
                     leng = 0
                     Inputverify = False
                     with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"r") as file:
-                        list = file.read().replace("\t","").split("\n")
-                    for x in range(len(list)):
-                        if list[x] == '"Properties"':
+                        listvvv = file.read().replace("\t","").split("\n")
+                    for x in range(len(listvvv)):
+                        if listvvv[x] == '"Properties"':
                             removeline = x + 7
-                        if list[x] == checkfor:
+                        if listvvv[x] == checkfor:
                             Inputverify = True
                     if Inputverify == False:
                         with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"w") as file:
                             for x in range(removeline):
-                                file.write(f"{list[x]}\n")
+                                file.write(f"{listvvv[x]}\n")
                             file.write(inputinsert + "\n")
-                            for x in range(removeline,len(list)):
-                                file.write(f"{list[x]}\n")
+                            for x in range(removeline,len(listvvv)):
+                                file.write(f"{listvvv[x]}\n")
                         
                     if Inputverify == True:
                         log("We already have added this type!")
@@ -318,6 +318,59 @@ def main():
                 
 
             if choicechoice == "Asset Packer":
+                assettypechoice = menu(["Models (.MDL)","Instances (.VMF)","Materials (.VTF & .VMT)","Auto Pack (.VTF, .VMT, .VMF, .MDL)"])
+                
+                if assettypechoice == "Auto Pack (.VTF, .VMT, .VMF, .MDL)":
+                    if os.path.isdir(os.path.join(path,"Asset_Pack")) == False:
+                        os.mkdir(os.path.join(path,"Asset_Pack"))
+                    print("Warning! THIS DOES NOT SUPPORT .VMF")
+                    autochoice = menu(["Use existing instances found in ucp file","Upload vmf"])
+                    if autochoice == "Use existing instances found in ucp file":
+                        modellist = []
+                        matlist = []
+                        #Finds how much vmfs are in there.
+                        vmf_files = []
+                        files = os.listdir(os.path.join(path,f'package/resources/instances/beepkg/{items[f"{intvalue}_Name"]}/'))
+                        for file in files:
+                            if file.endswith(".vmf"):
+                                vmf_files.append(file)
+                        #Reads vmfs and determins if model or material
+                        for x in range(len(vmf_files)):
+                            with open(os.path.join(path,f'package/resources/instances/beepkg/{items[f"{intvalue}_Name"]}/{items[f"{intvalue}_Name"]}_{x}.vmf'),"r") as file:
+                                appendthis = file.read().replace("\t","").split("\n")
+                                for x in appendthis:
+                                    if len(x) >= 6:
+                                        if  '"model"' in x:
+                                            modellist.append(x.replace('"model" ',""))
+                                            log(f"{x} is a model or material!")
+                                        else:
+                                            log(f"{x} is not a model!")
+                                    if len(x) >= 10:
+                                        if '"material"' in x:
+                                            matlist.append(x.replace('"material" ',""))
+                                            log(f"{x} is a model or material!")
+                                        else:
+                                            log(f"{x} is not a material!")
+                                    else:
+                                        log(f"{x} is shorter than 6 and 10!")
+                    #Note to self: Make Upload vmf function:
+                    removedupe = set(modellist)
+                    modellist = list(removedupe)
+                    removedupe = set(matlist)
+                    matlist = list(removedupe)
+                    log(modellist)
+                    log(matlist)
+                    #Removes duplicates (very common)
+
+                    #being packing
+                    p2path = findp2dir()
+                    maxdlc = findmaxdlc()
+                    #Find material file + vmt and copy it over to ucp
+                    for x in matlist:
+                        for x in range(maxdlc):
+                            os.path.isfile()
+
+                
                 if os.path.isdir(os.path.join(path,"Asset_Pack")) == False:
                     os.mkdir(os.path.join(path,"Asset_Pack"))
                 log(f'We have made a folder in {os.path.join(path,"Asset_Pack")}. Please put the .VTF and the .VMT in there.\nNote: We will automatically pack them and the directory will be right\nAnother note: We do not support models!')
@@ -385,19 +438,19 @@ def main():
                     leng = 0
                     Inputverify = False
                     with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"r") as file:
-                        list = file.read().replace("\t","").split("\n")
-                    for x in range(len(list)):
-                        if list[x] == '"Inputs"':
+                        listvvv = file.read().replace("\t","").split("\n")
+                    for x in range(len(listvvv)):
+                        if listvvv[x] == '"Inputs"':
                             removeline = x + 3
-                        if list[x] == '"Enable_cmd"':
+                        if listvvv[x] == '"Enable_cmd"':
                             Inputverify = True
                     if Inputverify == False:
                         with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"w") as file:
                             for x in range(removeline):
-                                file.write(f"{list[x]}\n")
+                                file.write(f"{listvvv[x]}\n")
                             file.write(inputinsert + "\n")
-                            for x in range(removeline,len(list)):
-                                file.write(f"{list[x]}\n")
+                            for x in range(removeline,len(listvvv)):
+                                file.write(f"{listvvv[x]}\n")
                         log("Input made. (input,FireUser1,,0,-1),(input,FireUser2,,0,-1)")
                         while True:
                             if keyboard.is_pressed("Enter"):
@@ -412,18 +465,18 @@ def main():
                     leng = 0
                     Inputverify = False
                     with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"r") as file:
-                        list = file.read().replace("\t","").split("\n")
-                    for x in range(len(list)):
-                        if list[x] == '"Inputs"':
+                        listvvv = file.read().replace("\t","").split("\n")
+                    for x in range(len(listvvv)):
+                        if listvvv[x] == '"Inputs"':
                             removeline = x + 3
-                        if list[x] == '"Enable_cmd"':
+                        if listvvv[x] == '"Enable_cmd"':
                             Inputverify = True
                     if Inputverify != False:
                         with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"w") as file:
                             for x in range(removeline):
-                                file.write(f"{list[x]}\n")
-                            for x in range(removeline + 8,len(list)):
-                                file.write(f"{list[x]}\n")
+                                file.write(f"{listvvv[x]}\n")
+                            for x in range(removeline + 8,len(listvvv)):
+                                file.write(f"{listvvv[x]}\n")
                         log("Removed Input.")
                         time.sleep(2)
                     else:
@@ -443,19 +496,19 @@ def main():
                     leng = 0
                     Inputverify = False
                     with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"r") as file:
-                        list = file.read().replace("\t","").split("\n")
-                    for x in range(len(list)):
-                        if list[x] == '"Outputs"':
+                        listvvv = file.read().replace("\t","").split("\n")
+                    for x in range(len(listvvv)):
+                        if listvvv[x] == '"Outputs"':
                             removeline = x + 3
-                        if list[x] == '"out_activate"':
+                        if listvvv[x] == '"out_activate"':
                             Inputverify = True
                     if Inputverify == False:
                         with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"w") as file:
                             for x in range(removeline):
-                                file.write(f"{list[x]}\n")
+                                file.write(f"{listvvv[x]}\n")
                             file.write(inputinsert + "\n")
-                            for x in range(removeline,len(list)):
-                                file.write(f"{list[x]}\n")
+                            for x in range(removeline,len(listvvv)):
+                                file.write(f"{listvvv[x]}\n")
                         log("Output made. (instance:Output;OnUser1),(instance:Output;OnUser2)")
                         while True:
                             if keyboard.is_pressed("Enter"):
@@ -469,18 +522,18 @@ def main():
                     leng = 0
                     Inputverify = False
                     with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"r") as file:
-                        list = file.read().replace("\t","").split("\n")
-                    for x in range(len(list)):
-                        if list[x] == '"Outputs"':
+                        listvvv = file.read().replace("\t","").split("\n")
+                    for x in range(len(listvvv)):
+                        if listvvv[x] == '"Outputs"':
                             removeline = x + 3
-                        if list[x] == '"out_activate"':
+                        if listvvv[x] == '"out_activate"':
                             Inputverify = True
                     if Inputverify != False:
                         with open(os.path.join(path, f'package/items/{items[f"{intvalue}_Name"]}/editoritems.txt'),"w") as file:
                             for x in range(removeline):
-                                file.write(f"{list[x]}\n")
-                            for x in range(removeline + 8,len(list)):
-                                file.write(f"{list[x]}\n")
+                                file.write(f"{listvvv[x]}\n")
+                            for x in range(removeline + 8,len(listvvv)):
+                                file.write(f"{listvvv[x]}\n")
                         log("Removed Output.")
                         time.sleep(2)
                     else:
@@ -492,12 +545,12 @@ def main():
             #Remove item
             if choicechoice == "Remove Item":
                 with open(os.path.join(path, "package/info.txt")) as file:
-                    list = file.read().replace("\t","").split("\n")
+                    listvvv = file.read().replace("\t","").split("\n")
 
                 locationvar = f'{intvalue}_ID'
 
-                for x in range(len(list)):
-                    if list[x] == f'"ID"  "{items[locationvar][1:]}"':
+                for x in range(len(listvvv)):
+                    if listvvv[x] == f'"ID"  "{items[locationvar][1:]}"':
                         removeline = x + 1
                 
                 def delline(linev):
@@ -552,7 +605,7 @@ print("When ready please upload a link to the terminal.")
 print(
     "We highly recommend you uploading the package to discord and copying the download link and sending it here."
 )
-path = sys.executable.replace(os.path.basename(sys.executable),"")
+path = __file__.replace(os.path.basename(__file__),"")
 downloadlink = input()
 url = downloadlink
 r = requests.get(url, allow_redirects=True)
