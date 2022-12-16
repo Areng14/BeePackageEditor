@@ -4,9 +4,12 @@ import shutil
 import sys
 import requests
 import keyboard
+from webbrowser import open as webopen
 from colorama import Fore, Style, init
 from math import ceil
 import time
+
+version = "1.2_DEV"
 
 
 def findp2dir():
@@ -114,8 +117,10 @@ def main():
         with open(os.path.join(path,f"logs/BPE_LOG[{timev}].txt"), 'a') as file:
             file.write(str(text) + "\n")
             print(f"[LOGS IGNORE!] {text}")
-
-    path = __file__.replace(os.path.basename(__file__),"")
+    if os.path.basename(sys.executable) == "python.exe":
+        path = __file__.replace(os.path.basename(__file__),"")
+    else:
+        path = sys.executable.replace(os.path.basename(sys.executable),"")
     if os.path.isfile(os.path.join(path,"package/info.txt")) == True:
         while True:
             with open(os.path.join(path,"package/info.txt"), 'r') as file:
@@ -179,6 +184,7 @@ def main():
                     menulist.append(items.get(f"{x + 1}_NameS")[:1].upper() + items.get(f"{x + 1}_NameS")[1:])
                 menulist.append("")
                 menulist.append(r"---------{Utilities}---------")
+                menulist.append("Check for updates")
                 menulist.append("Exit")
                 menulist.append("Pack")
                 itemchoice = menu(menulist)
@@ -186,15 +192,32 @@ def main():
                 #Starts listening for utility buttons
                 if itemchoice == "":
                     pass
-                if itemchoice == r"---------{Utilities}---------":
+                elif itemchoice == r"---------{Utilities}---------":
                     pass
-                if itemchoice == "Exit":
+                elif itemchoice == "Check for updates":
+                    dev_index = version.index("_DEV")
+                    dev_string = version[dev_index:]
+                    if dev_string != "_DEV":
+                        if requests.get("https://versioncontrol.orange-gamergam.repl.co/api/bpe").json() == version:
+                            print("No updates are currently available.")
+                        else:
+                            print(f'There is an update available. You are using ({version}) Newest is ({requests.get("https://versioncontrol.orange-gamergam.repl.co/api/bpe").json()})')
+                            print("You can get the update here https://github.com/Areng14/BeePackageEditor/releases")
+                            time.sleep(5)
+                            webopen("https://github.com/Areng14/BeePackageEditor/releases")
+                    else:
+                        print("You are currently using the DEV versions. Therefor no updates will be here.")
+                    print("Press enter to continue:")
+                    while True:
+                        if keyboard.is_pressed("Enter"):
+                            break
+                elif itemchoice == "Exit":
                     time.sleep(1)
                     shutil.rmtree(os.path.join(path,"package"))
                     if os.path.isdir(os.path.join(path,"package")) == False:
                         os.mkdir(os.path.join(path,"package"))
                     return
-                if itemchoice == "Pack":
+                elif itemchoice == "Pack":
                     ID = info["Name"].replace("'","").replace(" ","_").replace('"',"")[1:]
                     shutil.make_archive(ID, 'zip',os.path.join(path, "package"))
                     base = os.path.splitext(ID)[0]
@@ -318,12 +341,9 @@ def main():
                 
 
             if choicechoice == "Asset Packer":
-                assettypechoice = menu(["Models (.MDL)","Instances (.VMF)","Materials (.VTF & .VMT)","Auto Pack (.VTF, .VMT, .VMF, .MDL)"])
+                assettypechoice = menu(["Models (.MDL)","Instances (.VMF)","Materials (.VTF & .VMT)","Auto Pack (.VTF, .VMT, .MDL)"])
                 
                 if assettypechoice == "Auto Pack (.VTF, .VMT, .MDL)":
-                    if os.path.isdir(os.path.join(path,"Asset_Pack")) == False:
-                        os.mkdir(os.path.join(path,"Asset_Pack"))
-                    print("Warning! THIS DOES NOT SUPPORT .VMF")
                     autochoice = menu(["Use existing instances found in ucp file","Upload vmf"])
                     if autochoice == "Use existing instances found in ucp file":
                         modellist = []
@@ -341,13 +361,13 @@ def main():
                                 for x in appendthis:
                                     if len(x) >= 6:
                                         if  '"model"' in x:
-                                            modellist.append(x.replace('"model" ',"").replace('.mdl',"").replace("/","").replace('"',''))
+                                            modellist.append(x.replace('"model" ',"").replace('.mdl',"").replace('"',''))
                                             log(f"{x} is a model or material!")
                                         else:
                                             log(f"{x} is not a model!")
                                     if len(x) >= 10:
                                         if '"material"' in x:
-                                            matlist.append(x.replace('"material" ',"").replace("/","").replace('"',''))
+                                            matlist.append(x.replace('"material" ',"").replace('"',''))
                                             log(f"{x} is a model or material!")
                                         else:
                                             log(f"{x} is not a material!")
@@ -366,6 +386,7 @@ def main():
                     p2path = findp2dir()
                     maxdlc = findmaxdlc()
                     warn = 0
+                    #Before moving we must make the folders
                     #Find material file + vmt and copy it over to ucp
                     for x in matlist:
                         for y in range(1,maxdlc):
@@ -373,6 +394,11 @@ def main():
                             if os.path.isfile(checkpath + ".vtf") == True:
                                 log(f'{x.split("/")[-1]} is a valid custom material!')
                                 #Copy over the material and .vmt
+                                destination = checkpath
+                                destination.replace(os.path.basename(checkpath),"")
+                                if not os.path.exists(os.path.dirname(destination)):
+                                    # Create the destination folder
+                                    os.makedirs(os.path.dirname(destination))
                                 shutil.copyfile(checkpath + ".vtf", path + f"/package/resources/materials/{x}.vtf")
                                 shutil.copyfile(checkpath + ".vmt", path + f"/package/resources/materials/{x}.vmt")
                                 log(f'Sucesfully packed {x.split("/")[-1]}')
@@ -381,17 +407,25 @@ def main():
                                 log(f'{x.split("/")[-1]} is not a valid custom material!')
                                 log(checkpath)
                     #Model time
-                    for x in matlist:
+                    for x in modellist:
                         for y in range(1,maxdlc):
-                            checkpath = f'{p2path}/portal2_dlc{y}/models{x.replace("//","/")}'
+                            checkpath = f'{p2path}/portal2_dlc{y}/{x.replace("//","/")}'
                             if os.path.isfile(checkpath + ".mdl") == True:
                                 log(f'{x.split("/")[-1]} is a valid custom model!')
                                 #Copy over the model files
-                                shutil.copyfile(checkpath + ".dx90.vtx", path + f"/package/resources/models/{x}.dx90.vtx")
-                                shutil.copyfile(checkpath + ".mdl", path + f"/package/resources/models/{x}.mdl")
-                                shutil.copyfile(checkpath + ".phy", path + f"/package/resources/models/{x}.phy")
-                                shutil.copyfile(checkpath + ".vvd", path + f"/package/resources/models/{x}.vvd")
-                                log(f'Sucesfully packed {x.split("/")[-1]}')
+                                destination = path + f"/package/resources/{x}.vmt"
+                                destination.replace(os.path.basename(checkpath),"")
+                                log(destination)
+                                if not os.path.exists(os.path.dirname(destination)):
+                                    os.makedirs(os.path.dirname(destination))
+                                src_dir = checkpath.replace(os.path.basename(checkpath),"")
+                                dst_dir = path + f'/package/resources/{x.replace(os.path.basename(x),"")}'
+                                for file in os.listdir(src_dir):
+                                    if file.startswith(os.path.basename(checkpath)):
+                                        src_path = os.path.join(src_dir, file)
+                                        dst_path = os.path.join(dst_dir, file)
+                                        shutil.copy2(src_path, dst_path)
+
                             else:
                                 warn = 1
                                 log(f'{x.split("/")[-1]} is not a valid custom model!')
@@ -634,13 +668,30 @@ def main():
         log("Deleted packages.")
         return
 
-
 print("Welcome to Areng's Beemod Package Editor!\nDisclaimer: This does not make packages. This just simply packs textures and writes vbsp_configs.\nAnother note: This only works on beepkg's completed packages")
 print("When ready please upload a link to the terminal.")
 print(
     "We highly recommend you uploading the package to discord and copying the download link and sending it here."
 )
-path = __file__.replace(os.path.basename(__file__),"")
+dev_index = version.index("_DEV")
+dev_string = version[dev_index:]
+if dev_string != "_DEV":
+    if requests.get("https://versioncontrol.orange-gamergam.repl.co/api/bpe").json() == version:
+        print("No updates are currently available.")
+    else:
+        print(f'There is an update available. You are using ({version}) Newest is ({requests.get("https://versioncontrol.orange-gamergam.repl.co/api/bpe").json()})')
+        print("You can get the update here https://github.com/Areng14/BeePackageEditor/releases")
+        time.sleep(5)
+        webopen("https://github.com/Areng14/BeePackageEditor/releases")
+        while True:
+            if keyboard.is_pressed("Enter"):
+                break
+if os.path.basename(sys.executable) == "python.exe":
+    path = __file__.replace(os.path.basename(__file__),"")
+    using = "__file__"
+else:
+    path = sys.executable.replace(os.path.basename(sys.executable),"")
+    using = "sys.executable"
 downloadlink = input()
 url = downloadlink
 r = requests.get(url, allow_redirects=True)
