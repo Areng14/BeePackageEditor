@@ -200,7 +200,7 @@ def main():
                     base = os.path.splitext(ID)[0]
                     os.rename(ID + ".zip", base + '.bee_pack')
                     shutil.move(path + ID + ".bee_pack",os.path.join(path, "output/" + ID + ".bee_pack"))
-                    log("Operation Completed.")
+                    print("Operation Completed. (Press Enter)")
                 else:
                     break
 
@@ -320,7 +320,7 @@ def main():
             if choicechoice == "Asset Packer":
                 assettypechoice = menu(["Models (.MDL)","Instances (.VMF)","Materials (.VTF & .VMT)","Auto Pack (.VTF, .VMT, .VMF, .MDL)"])
                 
-                if assettypechoice == "Auto Pack (.VTF, .VMT, .VMF, .MDL)":
+                if assettypechoice == "Auto Pack (.VTF, .VMT, .MDL)":
                     if os.path.isdir(os.path.join(path,"Asset_Pack")) == False:
                         os.mkdir(os.path.join(path,"Asset_Pack"))
                     print("Warning! THIS DOES NOT SUPPORT .VMF")
@@ -341,13 +341,13 @@ def main():
                                 for x in appendthis:
                                     if len(x) >= 6:
                                         if  '"model"' in x:
-                                            modellist.append(x.replace('"model" ',""))
+                                            modellist.append(x.replace('"model" ',"").replace('.mdl',"").replace("/","").replace('"',''))
                                             log(f"{x} is a model or material!")
                                         else:
                                             log(f"{x} is not a model!")
                                     if len(x) >= 10:
                                         if '"material"' in x:
-                                            matlist.append(x.replace('"material" ',""))
+                                            matlist.append(x.replace('"material" ',"").replace("/","").replace('"',''))
                                             log(f"{x} is a model or material!")
                                         else:
                                             log(f"{x} is not a material!")
@@ -365,64 +365,99 @@ def main():
                     #being packing
                     p2path = findp2dir()
                     maxdlc = findmaxdlc()
+                    warn = 0
                     #Find material file + vmt and copy it over to ucp
                     for x in matlist:
-                        for x in range(maxdlc):
-                            os.path.isfile()
-
-                
-                if os.path.isdir(os.path.join(path,"Asset_Pack")) == False:
-                    os.mkdir(os.path.join(path,"Asset_Pack"))
-                log(f'We have made a folder in {os.path.join(path,"Asset_Pack")}. Please put the .VTF and the .VMT in there.\nNote: We will automatically pack them and the directory will be right\nAnother note: We do not support models!')
-                while True:
-                    try:
-                        extension1 = os.path.splitext(os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}'))[1]
-                    except:
-                        pass
-                    try:
-                        extension2 = os.path.splitext(os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[1]}'))[1]
-                    except:
-                        pass
-                    try:
-                        if len(os.listdir(os.path.join(path,"Asset_Pack"))) == 2 and extension1 == ".vmt" or extension1 == ".vtf" and extension2 == ".vmt" or extension2 == ".vtf":
+                        for y in range(1,maxdlc):
+                            checkpath = f'{p2path}/portal2_dlc{y}/materials/{x.replace("//","/")}'
+                            if os.path.isfile(checkpath + ".vtf") == True:
+                                log(f'{x.split("/")[-1]} is a valid custom material!')
+                                #Copy over the material and .vmt
+                                shutil.copyfile(checkpath + ".vtf", path + f"/package/resources/materials/{x}.vtf")
+                                shutil.copyfile(checkpath + ".vmt", path + f"/package/resources/materials/{x}.vmt")
+                                log(f'Sucesfully packed {x.split("/")[-1]}')
+                            else:
+                                warn = 1
+                                log(f'{x.split("/")[-1]} is not a valid custom material!')
+                                log(checkpath)
+                    #Model time
+                    for x in matlist:
+                        for y in range(1,maxdlc):
+                            checkpath = f'{p2path}/portal2_dlc{y}/models{x.replace("//","/")}'
+                            if os.path.isfile(checkpath + ".mdl") == True:
+                                log(f'{x.split("/")[-1]} is a valid custom model!')
+                                #Copy over the model files
+                                shutil.copyfile(checkpath + ".dx90.vtx", path + f"/package/resources/models/{x}.dx90.vtx")
+                                shutil.copyfile(checkpath + ".mdl", path + f"/package/resources/models/{x}.mdl")
+                                shutil.copyfile(checkpath + ".phy", path + f"/package/resources/models/{x}.phy")
+                                shutil.copyfile(checkpath + ".vvd", path + f"/package/resources/models/{x}.vvd")
+                                log(f'Sucesfully packed {x.split("/")[-1]}')
+                            else:
+                                warn = 1
+                                log(f'{x.split("/")[-1]} is not a valid custom model!')
+                                log(checkpath)
+                    print("Operation Completed. (Press Enter)")
+                    if warn == 1:
+                        print("Some materials / models may not be packed.\nThis may be because it is base textures or they are not found in the dlc folders.")
+                    while True:
+                        if keyboard.is_pressed("Enter"):
                             break
-                    except:
-                        pass
-                log(f'Detected File!')
-                log(f'Packing...')
-                readvmt = os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}')
-                if extension1 == ".vmt":
+
+                if assettypechoice == "Materials (.VTF & .VMT)":
+                    if os.path.isdir(os.path.join(path,"Asset_Pack")) == False:
+                        os.mkdir(os.path.join(path,"Asset_Pack"))
+                    log(f'We have made a folder in {os.path.join(path,"Asset_Pack")}. Please put the .VTF and the .VMT in there.\nNote: We will automatically pack them and the directory will be right\nAnother note: We do not support models!')
+                    while True:
+                        try:
+                            extension1 = os.path.splitext(os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}'))[1]
+                        except:
+                            pass
+                        try:
+                            extension2 = os.path.splitext(os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[1]}'))[1]
+                        except:
+                            pass
+                        try:
+                            if len(os.listdir(os.path.join(path,"Asset_Pack"))) == 2 and extension1 == ".vmt" or extension1 == ".vtf" and extension2 == ".vmt" or extension2 == ".vtf":
+                                break
+                        except:
+                            pass
+                    log(f'Detected File!')
+                    log(f'Packing...')
                     readvmt = os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}')
-                elif extension2 == ".vmt":
-                    readvmt = os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[1]}')
-                reader = []
-                valueline = ""
-                with open(readvmt,"r") as file2:
-                    file2 = file2.read().split("\n")
-                for x in range(len(file2)):
-                    reader.append(file2[x].replace("\n","").replace("\t",""))
-                    if "$basetexture" in file2[x]:
-                        valueline = x
-                
-                if valueline == "":
-                    log('Error! No "$basetexture"!')
-                else:
-                    readeresult = reader[valueline][14:].replace('"',"").replace(' ',"")
-                    readeresult = readeresult.split("/")
-                    readeresult2 = []
-                    for x in range(len(readeresult) - 1):
-                        readeresult2.append(readeresult[x])
-                        
-                    readeresult = "".join(readeresult2)
-                    if os.path.isdir(os.path.join(path,f"package/resources/materials/{readeresult}")) == False:
-                        os.mkdir(os.path.join(path,f"package/resources/materials/{readeresult}"))
-                    log(f'Moving {os.listdir(os.path.join(path,"Asset_Pack"))[0]}')
-                    shutil.move(os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}'), os.path.join(path,f'package/resources/materials/{readeresult}/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}'))
-                    log(f'Moving {os.listdir(os.path.join(path,"Asset_Pack"))[0]}')
-                    shutil.move(os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}'), os.path.join(path,f'package/resources/materials/{readeresult}/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}'))
-                    shutil.rmtree(os.path.join(path,"Asset_Pack"))
-                log("Operation Completed.")
-                time.sleep(2)
+                    if extension1 == ".vmt":
+                        readvmt = os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}')
+                    elif extension2 == ".vmt":
+                        readvmt = os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[1]}')
+                    reader = []
+                    valueline = ""
+                    with open(readvmt,"r") as file2:
+                        file2 = file2.read().split("\n")
+                    for x in range(len(file2)):
+                        reader.append(file2[x].replace("\n","").replace("\t",""))
+                        if "$basetexture" in file2[x]:
+                            valueline = x
+
+                    if valueline == "":
+                        log('Error! No "$basetexture"!')
+                    else:
+                        readeresult = reader[valueline][14:].replace('"',"").replace(' ',"")
+                        readeresult = readeresult.split("/")
+                        readeresult2 = []
+                        for x in range(len(readeresult) - 1):
+                            readeresult2.append(readeresult[x])
+
+                        readeresult = "".join(readeresult2)
+                        if os.path.isdir(os.path.join(path,f"package/resources/materials/{readeresult}")) == False:
+                            os.mkdir(os.path.join(path,f"package/resources/materials/{readeresult}"))
+                        log(f'Moving {os.listdir(os.path.join(path,"Asset_Pack"))[0]}')
+                        shutil.move(os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}'), os.path.join(path,f'package/resources/materials/{readeresult}/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}'))
+                        log(f'Moving {os.listdir(os.path.join(path,"Asset_Pack"))[0]}')
+                        shutil.move(os.path.join(path,f'Asset_Pack/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}'), os.path.join(path,f'package/resources/materials/{readeresult}/{os.listdir(os.path.join(path,"Asset_Pack"))[0]}'))
+                        shutil.rmtree(os.path.join(path,"Asset_Pack"))
+                    print("Operation Completed. (Press Enter)")
+                    while True:
+                        if keyboard.is_pressed("Enter"):
+                            break
                 
                 
 
