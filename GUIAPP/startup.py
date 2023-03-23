@@ -12,6 +12,7 @@ import packagemanager
 
 root = tk.Tk()
 root.geometry("256x256+300+200")
+root.config(bg="#232323")
 root.configure(bg="#232323")
 root.title("Beemod Package Editor (STARTUP) V.2")
 
@@ -33,7 +34,7 @@ def fixvtf():
 def submit_path():
     path2 = path_entry.get()
     try:
-        shutil.rmtree(os.path.join(path,"packages"))    
+        shutil.rmtree(os.path.join(path,"packages"), ignore_errors=True)
         os.makedirs(os.path.join(path,"packages"))
         with zipfile.ZipFile(path2, 'r') as zip_ref:
             txtfile = zip_ref.open('info.txt', 'r')
@@ -46,7 +47,7 @@ def submit_path():
                 fixvtf()
             BPE.intui()
         else:
-            result = messagebox.askyesno("Error", "Not a BeePKG package!\nWould you like to open this anyways?\nYou may encounter errors by doing this.")
+            result = messagebox.askyesno("Warning", "Not a BeePKG package!\nWould you like to open this anyways?\nYou may encounter errors by doing this.")
             if result == True:
                 with open(os.path.join(path,"config.bpe"),"w") as config:
                     config.write(path2)
@@ -54,9 +55,28 @@ def submit_path():
                 if check_var.get() == 1:
                     fixvtf()
                 BPE.intui()
+    except FileNotFoundError:
+        froot = tk.Tk()
+        froot.withdraw()
+        messagebox.showerror(title="Error!", message=f'Could not read editoritems.txt from one of your items!\nPlease check your info.txt')
+        froot.destroy()
+        sys.exit()
     except Exception as error:
         pyperclip.copy(traceback.format_exc())
         messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
+
+def loadlast():
+    try:
+        with open(os.path.join(path,"config.bpe"),"r") as file:
+            choice = messagebox.askyesno("Info",f'Do you want to load "{os.path.basename(file.read())}"?')
+        if choice == True:
+            root.destroy()
+            BPE.intui()
+    except Exception as error:
+        pyperclip.copy(traceback.format_exc())
+        messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
+
+root.wm_iconbitmap(os.path.join(path,"imgs/","bpe.ico"))
 
 path_label = tk.Label(root, text="Enter path to file:", bg="#232323",fg="#878787")
 path_label.pack()
@@ -70,8 +90,11 @@ browse_button.place(x=128,y=40)
 submit_button = tk.Button(root, text="Submit", command=submit_path, bg="#232323",fg="#878787",activeforeground="#232323",activebackground="#878787")
 submit_button.place(x=78,y=40)
 
+submit_button = tk.Button(root, text="    Load Recent    ", command=loadlast, bg="#232323",fg="#878787",activeforeground="#232323",activebackground="#878787")
+submit_button.place(x=78,y=65)
+
 check_var = tk.IntVar()
 check_button = tk.Checkbutton(root, text="Patch VTFs", variable=check_var, bg="#232323",fg="#878787",activeforeground="#232323",activebackground="#878787")
-check_button.place(x=86,y=65)
+check_button.place(x=86,y=90)
 
 root.mainloop()

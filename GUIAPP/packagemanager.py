@@ -113,14 +113,13 @@ def patch_vtfs(item_dict):
 def readfile(file):
     #Checks if file exists before extracting. If so remove contents
     items = {}
+    beepkg = 0
     #Extracting the zip
-    try:
-        with zipfile.ZipFile(file, 'r') as zip_ref:
+    with zipfile.ZipFile(file, 'r') as zip_ref:
+        try:
             zip_ref.extractall(packagesdir)
-    except PermissionError:
-        raise "NoPerms"
-    except FileNotFoundError:
-        raise "NonExistant"
+        except (PermissionError, FileNotFoundError) as e:
+            raise e
     #Begin to read info.txt and return information collected into a dict. Format: {INT: ID, Name, iteminfo path}
     with open(os.path.join(packagesdir,"info.txt")) as infotxt:
         linelist = infotxt.read().split("\n")
