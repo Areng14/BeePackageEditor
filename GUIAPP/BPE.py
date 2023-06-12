@@ -8,6 +8,7 @@ import log
 from random import choice
 import traceback
 import requests
+import re
 import packagemanager
 from tkinter import filedialog,messagebox
 import os
@@ -31,7 +32,15 @@ def intui():
                 return f"{x}:\Program Files (x86)\Steam\steamapps\common\Portal 2"
             if os.path.isdir(f"{x}:\SteamLibrary\steamapps\common\Portal 2") == True:
                 return f"{x}:\Program Files (x86)\Steam\steamapps\common\Portal 2"
+        #Handles no p2 dir
+        messagebox.showerror("Error","Portal 2's directory not found! Please select game folder.")
+        return filedialog.askdirectory()
         #Checks for p2's directory
+
+    def forcedelete(dir):
+        while os.path.isdir(dir):
+            shutil.rmtree(dir, ignore_errors=True)
+
 
     def on_select(event):
         global selected
@@ -76,6 +85,65 @@ def intui():
     editor = []
     id = []
     global itemsdict
+
+    #Refresh Package
+    def refreshpack():
+        log.loginfo("Refreshing package!")
+        global itemsdict
+        items.clear()
+        editor.clear()
+        id.clear()
+        with open(os.path.join(path,"config.bpe"),"r") as config:
+            filepath = config.read()
+            itemsdict = packagemanager.readfile(filepath)
+        for x in range(len(itemsdict) - 1):
+            appendthis = itemsdict[x]
+            items.append(appendthis[1])
+            editor.append(appendthis[2])
+            id.append(appendthis[0])
+        listbox.delete(0, tk.END)
+        for item in items:
+            listbox.insert(tk.END, " " + item)
+        if items:
+            pass
+        else:
+            messagebox.showerror("Error","No items in package!\nPlease select another package.")
+            changepack()
+        log.loginfo("Package Reloaded!")
+
+    #Change package
+    def changepack():
+        log.loginfo("Changing package")
+        filepath = filedialog.askopenfilename()
+        if filepath:
+            path2 = filepath
+            try:
+                shutil.rmtree(os.path.join(path,"packages"), ignore_errors=True)
+                try:
+                    os.makedirs(os.path.join(path,"packages"))
+                except:
+                    log.logwarn("Packages folder not fully removed!")
+                with zipfile.ZipFile(path2, 'r') as zip_ref:
+                    txtfile = zip_ref.open('info.txt', 'r')
+                    txtlist = txtfile.read().decode().split("\n")
+                if "//" in txtlist[0]:
+                    with open(os.path.join(path,"config.bpe"),"w") as config:
+                        config.write(path2)
+                        log.loginfo(f"Changing to {os.path.basename(path2)}")
+                    name_variable.set("")
+                    refreshpack()
+                else:
+                    result = messagebox.askyesno("Warning", "Not a BeePKG package!\nWould you like to open this anyways?\nYou may encounter errors by doing this.")
+                    if result == True:
+                        with open(os.path.join(path,"config.bpe"),"w") as config:
+                            config.write(path2)
+                            log.loginfo(f"Changing to {os.path.basename(path2)}")
+                        name_variable.set("")
+                        refreshpack()
+            except Exception as error:
+                pyperclip.copy(traceback.format_exc())
+                messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
+
     with open(os.path.join(path,"config.bpe"),"r") as config:
         filepath = config.read()
         itemsdict = packagemanager.readfile(filepath)
@@ -89,7 +157,7 @@ def intui():
     global menu
     global vbspbutton
     global listbox
-    global holebutton
+    global inputbutton
     global autobutton
     global menu_button
     global menu_icon
@@ -98,8 +166,12 @@ def intui():
     global buttone
     global name_box
     global button
+    global iopopup
+    global popup
     typevar = "Add Button Type"
     typenum = 1
+    popup = None
+    iopopup = None
     global selected
     global root
     global fuckyouforspammingbutton
@@ -136,36 +208,18 @@ def intui():
     scrollbar = tk.Scrollbar(frame, orient="vertical")
     scrollbar.config(command=listbox.yview)
     listbox.config(yscrollcommand=scrollbar.set)
-    scrollbar.config(bg='#232323')
+    scrollbar.config(bg=theme2)
     scrollbar.grid(column=1, row=0, sticky="ns")
     # Bind the listbox to the on_select function
     listbox.bind("<<ListboxSelect>>", on_select)
 
     #Information board
     name_variable = tk.StringVar()
+    selected = choice(items)
+    name_variable.set(selected)
     name_box = tk.Label(root, textvariable=name_variable,bg=theme2,fg=theme1, anchor="center",width=17,bd=0,font=("Arial", 20, "bold"))
     name_box.place(x=410, y=50)
     #Name of item
-
-    #Refresh Package
-    def refreshpack():
-        log.loginfo("Refreshing package!")
-        global itemsdict
-        items.clear()
-        editor.clear()
-        id.clear()
-        with open(os.path.join(path,"config.bpe"),"r") as config:
-            filepath = config.read()
-            itemsdict = packagemanager.readfile(filepath)
-        for x in range(len(itemsdict) - 1):
-            appendthis = itemsdict[x]
-            items.append(appendthis[1])
-            editor.append(appendthis[2])
-            id.append(appendthis[0])
-        listbox.delete(0, tk.END)
-        for item in items:
-            listbox.insert(tk.END, " " + item)
-        log.loginfo("Package Reloaded!")
 
     #Autopack 
     def autopack():
@@ -174,18 +228,7 @@ def intui():
         global itemsdict
         global fuckyouforspammingbutton
         if not selected:
-            fuckyouforspammingbutton += 1
-            if fuckyouforspammingbutton == 5:
-                messagebox.showerror("Error","You can select the items on the left list you know?")
-            elif fuckyouforspammingbutton == 10:
-                messagebox.showerror("Error","SELECT AN ITEM BEFORE ENTERING AUTOPACK!")
-            elif fuckyouforspammingbutton == 15:
-                selected = choice(items)
-                name_variable.set(selected)
-                messagebox.showerror("Error",f"Fine, Il choose one for you. It will be {selected}")
-
-            else:
-                messagebox.showerror("Error","Please select an item before entering Autopack!")
+            pass
 
         else:
             try:
@@ -242,7 +285,7 @@ def intui():
                 packlist = list(set(packlist))
 
                 #Getting the list from an "api" because its too long
-                baseassets = requests.get("https://versioncontrol.orange-gamergam.repl.co/data/baseassets")
+                baseassets = requests.get("https://versioncontrol.areng123.repl.co/data/baseassets")
                 baseassets = baseassets.text.replace(" ","").replace("'","").split(",")
                 for x in range(len(packlist)):
                     if os.path.splitext(os.path.basename(packlist[x]))[0].upper() in baseassets:
@@ -271,9 +314,9 @@ def intui():
                                     if os.path.isfile(os.path.join(p2,f"portal2_dlc{x}",asset + ".vmt")) == True:
                                         log.loginfo(f"Found asset in portal2_dlc{x}")
                                         try:
-                                            log.loginfo(f'Moving asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".vmt")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".vmt")))}')
+                                            log.loginfo(f'Copying asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".vmt")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".vmt")))}')
                                             shutil.copy(os.path.join(p2,f"portal2_dlc{x}",asset + ".vmt"), os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".vmt"))))
-                                            log.loginfo(f'Moving asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".vtf")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".vtf")))}')
+                                            log.loginfo(f'Copying asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".vtf")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".vtf")))}')
                                             shutil.copy(os.path.join(p2,f"portal2_dlc{x}",asset + ".vtf"), os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".vtf"))))
                                             log.loginfo(f"Sucesfully moved assets!")
                                             break
@@ -313,13 +356,13 @@ def intui():
                                     if os.path.isfile(os.path.join(p2,f"portal2_dlc{x}",asset + ".mdl")) == True:
                                         log.loginfo(f"Found asset in portal2_dlc{x}")
                                         try:
-                                            log.loginfo(f'Moving asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".mdl")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".mdl")))}')
+                                            log.loginfo(f'Copying asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".mdl")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".mdl")))}')
                                             shutil.copy(os.path.join(p2,f"portal2_dlc{x}",asset + ".mdl"), os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".mdl"))))
-                                            log.loginfo(f'Moving asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".vvd")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".vvd")))}')
+                                            log.loginfo(f'Copying asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".vvd")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".vvd")))}')
                                             shutil.copy(os.path.join(p2,f"portal2_dlc{x}",asset + ".vvd"), os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".vvd"))))
-                                            log.loginfo(f'Moving asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".dx90.vtx")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".dx90.vtx")))}')
+                                            log.loginfo(f'Copying asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".dx90.vtx")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".dx90.vtx")))}')
                                             shutil.copy(os.path.join(p2,f"portal2_dlc{x}",asset + ".dx90.vtx"), os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".dx90.vtx"))))
-                                            log.loginfo(f'Moving asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".phy")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".phy")))}')
+                                            log.loginfo(f'Copying asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".phy")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".phy")))}')
                                             shutil.copy(os.path.join(p2,f"portal2_dlc{x}",asset + ".phy"), os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".phy"))))
                                             log.loginfo(f"Sucesfully moved assets!")
                                             break
@@ -362,7 +405,7 @@ def intui():
                                     if os.path.isfile(os.path.join(p2,f"portal2_dlc{x}",asset + extension)) == True:
                                         log.loginfo(f"Found asset in portal2_dlc{x}")
                                         try:
-                                            log.loginfo(f'Moving asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".mdl")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".mdl")))}')
+                                            log.loginfo(f'Copying asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".mdl")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".mdl")))}')
                                             shutil.copy(os.path.join(p2,f"portal2_dlc{x}",asset + extension), os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + extension))))
                                             log.loginfo(f"Sucesfully moved assets!")
                                             break
@@ -399,7 +442,7 @@ def intui():
                                     if os.path.isfile(os.path.join(p2,f"portal2_dlc{x}",asset + extension)) == True:
                                         log.loginfo(f"Found asset in portal2_dlc{x}")
                                         try:
-                                            log.loginfo(f'Moving asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".mdl")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".mdl")))}')
+                                            log.loginfo(f'Copying asset from: {os.path.join(p2,f"portal2_dlc{x}",asset + ".mdl")} to {os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + ".mdl")))}')
                                             shutil.copy(os.path.join(p2,f"portal2_dlc{x}",asset + extension), os.path.join(packagematpath.lower(),os.path.basename(os.path.join(packagesdir,"resources",asset + extension))))
                                             log.loginfo(f"Sucesfully moved assets!")
                                             break
@@ -438,52 +481,20 @@ def intui():
                 messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
                 autobutton.config(state="normal")
 
-    #Change package
-    def changepack():
-        log.loginfo("Changing package")
-        filepath = filedialog.askopenfilename()
-        if filepath:
-            path2 = filepath
-            try:
-                shutil.rmtree(os.path.join(path,"packages"), ignore_errors=True)
-                try:
-                    os.makedirs(os.path.join(path,"packages"))
-                except:
-                    log.logwarn("Packages folder not fully removed!")
-                with zipfile.ZipFile(path2, 'r') as zip_ref:
-                    txtfile = zip_ref.open('info.txt', 'r')
-                    txtlist = txtfile.read().decode().split("\n")
-                if "//" in txtlist[0]:
-                    with open(os.path.join(path,"config.bpe"),"w") as config:
-                        config.write(path2)
-                        log.loginfo(f"Changing to {os.path.basename(path2)}")
-                    name_variable.set("")
-                    refreshpack()
-                else:
-                    result = messagebox.askyesno("Warning", "Not a BeePKG package!\nWould you like to open this anyways?\nYou may encounter errors by doing this.")
-                    if result == True:
-                        with open(os.path.join(path,"config.bpe"),"w") as config:
-                            config.write(path2)
-                            log.loginfo(f"Changing to {os.path.basename(path2)}")
-                        name_variable.set("")
-                        refreshpack()
-            except Exception as error:
-                pyperclip.copy(traceback.format_exc())
-                messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
-
 
     def changetheme():
         global theme1
         global root
         global menu
         global vbspbutton
-        global holebutton
+        global inputbutton
         global autobutton
         global debugbutton
         global menu_button
         global menu_icon
         global frame
         global popup
+        global iopopup
         global text
         global name_box
         global listbox
@@ -502,7 +513,7 @@ def intui():
             theme2 = "#232323"
             theme3 = "#4d4d4d"
             menu_icon = ImageTk.PhotoImage(use_image("menu.png",(20,20)))
-        buttons = [vbspbutton,holebutton,autobutton,debugbutton,buttone]
+        buttons = [vbspbutton,inputbutton,autobutton,debugbutton,buttone]
         for button in buttons:
             button.configure(bg=theme3,fg=theme1)
         name_box.configure(bg=theme2,fg=theme1)
@@ -512,9 +523,15 @@ def intui():
         menu_button.configure(image=menu_icon)
         frame.configure(bg=theme2)
         root.configure(bg=theme2)
-        popup.configure(bg=theme2)
-        popup.update_idletasks()
+        if popup:
+            popup.configure(bg=theme2)
+            popup.update_idletasks()
+        if iopopup:
+            iopopup.configure(bg=theme2)
+            iopopup.update_idletasks()
         root.update_idletasks()
+
+
 
     #Utils
     menu_icon = ImageTk.PhotoImage(use_image("menu.png",(20,20)))
@@ -537,66 +554,214 @@ def intui():
 
     #Leak checker
 
-    def holemaker():
-        log.loginfo("Running HoleMaker")
+    def ioedit():
+        global iopopup
+        log.loginfo("Running ioedit")
         if not selected:
             messagebox.showerror("Error","Please select an item first!")
             return 
         itemkey = finditemkey()
 
-        #Read editoritems.txt and find "embeddedvoxels"
-        with open(os.path.join(packagemanager.packagesdir,"items",itemsdict[itemkey][2],"editoritems.txt")) as file:
-            print(file.read().replace("\t",""))
-            voxels = assetmanager.find_block(file.read().replace("\t",""),'"EmbeddedVoxels"')
-        
-        #Making a new window to allow for editing embedded voxels
-        embedwin = Toplevel(root)
-        embedwin.geometry("512x512")
-        embedwin.title("Embed Voxels Editor")
-        embedwin.configure(bg=theme2)
-        name = tk.StringVar()
-        namevart = itemsdict[itemkey][1]
-        if len(namevart) <= 17:
-            name.set(namevart)
+        #Get path to instances (Looking in vbsp_config, and editoritems)
+        #Get VMFs
+        lookfor = []
+        packagesdir = os.path.join(path,"packages")
+        #Search editoritems.txt
+        log.loginfo("Finding VMFs")
+        with open(os.path.join(packagesdir,"items",itemsdict[itemkey][2],"editoritems.txt")) as file:
+            editoritemslines = file.read().replace("\t","").split("\n")
+        for x in editoritemslines:
+            if '"NAME"' in x.upper() and "INSTANCES" in x.upper():
+                lookfor.append(x.replace('"Name"','').replace('BEE2/',"").replace(' ',"").replace('"',""))
+        #Search vbsp_config (if it exists)
+        if os.path.isfile(os.path.join(packagesdir,"items",itemsdict[itemkey][2],"vbsp_config.cfg")) == True:
+            with open(os.path.join(packagesdir,"items",itemsdict[itemkey][2],"vbsp_config.cfg")) as file:
+                editoritemslines = file.read().replace("\t","").split("\n")
+            for x in editoritemslines:
+                if '"ADDOVERLAY"' in x.upper() and "INSTANCES" in x.upper():
+                    lookfor.append(x.replace('"AddOverlay"','').replace('BEE2/',"").replace(' ',"").replace('"',""))
+                if '"CHANGEINSTANCE"' in x.upper() and "INSTANCES" in x.upper():
+                    lookfor.append(x.replace('"ChangeInstance"','').replace('BEE2/',"").replace(' ',"").replace('"',""))
+        #Once we have gotten the instances we want to check if it actually exists or not
+        instancelist = []
+        for x in list(set(lookfor)):
+            if os.path.isfile(os.path.join(packagesdir,"resources",x)) == True:
+                instancelist.append(os.path.join(packagesdir,"resources",x))
+
+        log.loginfo("Reading VMFs")
+        entitydict = {}
+        for instance in instancelist:
+            with open(instance, "r") as vmf:
+                file_content = vmf.read()
+                entityblocks = assetmanager.find_blocks(file_content, "entity")
+                if entityblocks:
+                    for block in entityblocks:
+                        try:
+                            pattern = re.compile(r'"targetname"\s*"([^"]*)"')
+                            match = pattern.search(block)
+                            classpattern = re.compile(r'"classname"\s*"([^"]*)"')
+                            classmatch = classpattern.search(block)
+                            entitydict[match.group(1)] = classmatch.group(1)
+                        except AttributeError:
+                            pass  # Let Attribute Error pass because it means no text found.
+                else:
+                    print(f"No 'entity' blocks found in {instance}")
+        print(entitydict)
+        #Popup a UI to edit the inputs
+        #Checks for entities if none handle it
+        if entitydict:
+            # Create the main window
+            iopopup = tk.Toplevel()
+            iopopup.title("Input / Output Editor")
+            iopopup.geometry("600x256")
+            iopopup.config(bg=theme2)
+            iopopup.wm_iconbitmap(os.path.join(path, "imgs/", "bpe.ico"))
+
+            # Create the dropdown widget for selecting an entity
+            entityselected_option = tk.StringVar(iopopup)
+            entityselected_option.set(next(iter(entitydict.keys())))
+            entitydropdown = tk.OptionMenu(iopopup, entityselected_option, *entitydict.keys())
+            entitydropdown.config(width=8, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
+            entitydropdown.place(x=60, y=32)
+
+            # Create the dropdown widget for selecting a fire option
+            fires = ["AddOutput", "Alpha", "AlternativeSorting", "BecomeRagdoll", "CallScriptFunction", "CancelPress", "ClearParent", "Color", "DisableDraw", "DisableDrawInFastReflection", "DisableReceivingFlashlight", "DisableShadow", "EnableDraw", "EnableDrawInFastReflection", "EnableReceivingFlashlight", "EnableShadow", "fademaxdist", "fademindist", "FireUser1", "FireUser2", "FireUser3", "FireUser4", "ForceSpawn", "Ignite", "IgniteHitboxFireScale", "IgniteLifetime", "IgniteNumHitboxFires", "Kill", "KillHierarchy", "Lock", "Press", "RunScriptCode", "RunScriptFile", "SetBodyGroup", "SetDamageFilter", "SetLightingOrigin", "SetLightingOriginHack", "SetLocalAngles", "SetLocalOrigin", "SetParent", "SetParentAttachment", "SetParentAttachmentMaintainOffset", "SetTextureIndex", "StartForward", "StartBackward", "Skin", "UnLock", "Use"]
+            fireselected_option = tk.StringVar(iopopup)
+            fireselected_option.set(fires[0])
+            firedropdown = tk.OptionMenu(iopopup, fireselected_option, *fires)
+            firedropdown.config(width=3, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
+            firedropdown.place(x=120, y=32)
+
+            # Prevent newline
+            def on_key_press(event):
+                if event.keysym in ["Return", "KP_Enter", "Control-Return"]:
+                    return "break"
+
+            # Create the input text widget
+            inputtxt = tk.Text(iopopup, height=1, width=8)
+            inputtxt.bind("<Return>", on_key_press)
+            inputtxt.bind("<KP_Enter>", on_key_press)
+            inputtxt.bind("<Control-Return>", on_key_press)
+            inputtxt.place(x=176, y=35)
+            inputtxt.config(bg=theme2, fg=theme1)
+
+            # Define the function to handle the Return and Control-Return events
+            def on_key_press_delayer(event):
+                # Allow the BackSpace and Delete keys
+                if event.keysym in ["BackSpace", "Delete"]:
+                    return
+                # Allow digits and periods
+                elif not event.char.isdigit() and event.char != ".":
+                    # Allow the Control-x, Control-c, and Control-v shortcuts
+                    if event.keysym not in ["Control_L", "Control_R", "c", "x", "v"]:
+                        return "break"
+
+            # Create the delay text widget
+            delaytxt = tk.Text(iopopup, height=1, width=8)
+            delaytxt.bind("<Return>", on_key_press_delayer)
+            delaytxt.bind("<KP_Enter>", on_key_press_delayer)
+            delaytxt.bind("<Control-Return>", on_key_press_delayer)
+            delaytxt.bind("<Key>", on_key_press_delayer)
+            delaytxt.place(x=236, y=35)
+            delaytxt.config(bg=theme2, fg=theme1)
+
+            # Load the inputinfo image
+            inputinfoimg = ImageTk.PhotoImage(use_image("inputinfo.png", (244, 20)))
+
+            # Create the inputinfo image label
+            inputinfopng = tk.Label(iopopup, image=inputinfoimg, width=244, height=20, bd=0)
+            inputinfopng.place(x=60, y=64)
+
+            # Define the confirmadd function
+            def confirmadd():
+                # Compile input
+                newinput = f"{entityselected_option.get()},{fireselected_option.get()},{inputtxt.get('1.0', tk.END).strip()},{delaytxt.get('1.0', tk.END).strip()},-1"
+                yesno = messagebox.askyesno("Info", "Are you sure you want to replace the current input with the new input?")
+
+                if yesno:
+                    with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt")) as file:
+                        content = file.read()
+                        vtextdict = assetmanager.vtext_to_json(''.join(assetmanager.find_blocks(content, '"Inputs"', pattern=r'({key}\s*\{{(?:.*?\n)*?\s*\}})')))
+                    with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
+                        file.write(content.replace(vtextdict['"Inputs"']['Enable_cmd'], newinput))
+                    messagebox.showinfo("Info", "Changed inputs!")
+
+            # Create the input activate button
+            inputactivatebutton = tk.Button(iopopup, text="Add", command=confirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme1)
+            inputactivatebutton.place(x=320, y=35)
+            #declare the input stuff.
+
+            #add the deactivate part
+            # Create the dropdown widget for selecting an entity
+            deentityselected_option = tk.StringVar(iopopup)
+            deentityselected_option.set(next(iter(entitydict.keys())))
+            deentitydropdown = tk.OptionMenu(iopopup, entityselected_option, *entitydict.keys())
+            deentitydropdown.config(width=8, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
+            deentitydropdown.place(x=60, y=192)
+
+            # Create the dropdown widget for selecting a fire option
+            defireselected_option = tk.StringVar(iopopup)
+            defireselected_option.set(fires[0])
+            defiredropdown = tk.OptionMenu(iopopup, fireselected_option, *fires)
+            defiredropdown.config(width=3, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
+            defiredropdown.place(x=120, y=192)
+
+            # Prevent newline
+            def on_key_press(event):
+                if event.keysym in ["Return", "KP_Enter", "Control-Return"]:
+                    return "break"
+
+            # Create the input text widget
+            deinputtxt = tk.Text(iopopup, height=1, width=8)
+            deinputtxt.bind("<Return>", on_key_press)
+            deinputtxt.bind("<KP_Enter>", on_key_press)
+            deinputtxt.bind("<Control-Return>", on_key_press)
+            deinputtxt.place(x=176, y=195)
+            deinputtxt.config(bg=theme2, fg=theme1)
+
+            # Create the delay text widget
+            dedelaytxt = tk.Text(iopopup, height=1, width=8)
+            dedelaytxt.bind("<Return>", on_key_press_delayer)
+            dedelaytxt.bind("<KP_Enter>", on_key_press_delayer)
+            dedelaytxt.bind("<Control-Return>", on_key_press_delayer)
+            dedelaytxt.bind("<Key>", on_key_press_delayer)
+            dedelaytxt.place(x=236, y=195)
+            dedelaytxt.config(bg=theme2, fg=theme1)
+
+
+            # Create the inputinfo image label
+            deinputinfopng = tk.Label(iopopup, image=inputinfoimg, width=244, height=20, bd=0)
+            deinputinfopng.place(x=60, y=224)
+
+            # Define the confirmadd function
+            def deconfirmadd():
+                # Compile input
+                newinput = f"{deentityselected_option.get()},{defireselected_option.get()},{deinputtxt.get('1.0', tk.END).strip()},{dedelaytxt.get('1.0', tk.END).strip()},-1"
+                yesno = messagebox.askyesno("Info", "Are you sure you want to replace the current input with the new input?")
+
+                if yesno:
+                    with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt")) as file:
+                        content = file.read()
+                        vtextdict = assetmanager.vtext_to_json(''.join(assetmanager.find_blocks(content, '"Inputs"', pattern=r'({key}\s*\{{(?:.*?\n)*?\s*\}})')))
+                    with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
+                        file.write(content.replace(vtextdict['"Inputs"']['Disable_cmd'], newinput))
+                    messagebox.showinfo("Info", "Changed inputs!")
+
+            # Create the input activate button
+            inputactivatebutton = tk.Button(iopopup, text="Add", command=deconfirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme1)
+            inputactivatebutton.place(x=320, y=195)
+
+
+            inputdeclaration = [inputactivatebutton, inputinfopng, inputtxt, firedropdown, entitydropdown]
+
+            # Start the main event loop
+            iopopup.mainloop()
         else:
-            name.set(namevart[:17] + "...")
-        ItemName = tk.Label(embedwin, textvariable=name,bg=theme2,fg=theme1, anchor="center",width=17,bd=0,font=("Arial", 20, "bold"))
-        ItemName.place(x=125,y=10)
+            messagebox.showerror("Error",f"{itemsdict[itemkey][1]}'s instance does not have a entity!\nThis may be because the entity does not have a name or this item has no entities")
+        log.loginfo("Completed.")
 
-        #Do math and check pos
-        #Remove unnessacary info 
-        while '"Voxel"' in voxels:
-            voxels.remove('"Voxel"')
-        while '{' in voxels:
-            voxels.remove('{')
-        while '}' in voxels:
-            voxels.remove('}')
-
-        print(voxels)
-
-        for x in range(len(voxels)):
-            xt = voxels[x].replace("\t","")
-            if '"Pos"' in xt:
-                voxels[x] = tuple(map(int, xt[5:].replace('"','').split()))
-            if '"Volume"' in xt:
-                messagebox.showerror('Error!','"Volume" is not supported!')
-                return
-        print(voxels[1:])
-
-        button_dict =   {
-                            'Button 1': {'text': 'Button 1', 'x': 10, 'y': 10},
-                            'Button 2': {'text': 'Button 2', 'x': 110, 'y': 10},
-                            'Button 3': {'text': 'Button 3', 'x': 210, 'y': 10},
-                        }
-
-        #Place buttons
-        for btn_text, btn_params in button_dict.items():
-            button = tk.Button(embedwin, text=btn_params['text'], command=lambda: print(f'{btn_params["text"]} clicked'))
-            button.place(x=btn_params['x'], y=btn_params['y'])
-
-
-    holebutton = tk.Button(root, text="Hole Editor",command=holemaker,font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1)
-    holebutton.place(x=609, y=250)
+    inputbutton = tk.Button(root, text="Connection Editor",command=ioedit,font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1)
+    inputbutton.place(x=609, y=250)
 
     #vbsp_editor
 
@@ -732,8 +897,8 @@ def intui():
                 else:
                     return False
 
-        syntaxcheck1 = ["(",r"{","'"]
-        syntaxcheck2 = [")",r"}","'"]
+        syntaxcheck1 = ["(","{"]
+        syntaxcheck2 = [")","}"]
         failed = []
         for checkthis in checklistfile:
             for x in range(len(syntaxcheck1)):
@@ -762,14 +927,14 @@ def intui():
                         failed.append(os.path.basename(instance))
         
         if failed:
-            messagebox.showerror("Error",f"{itemsdict[itemkey][1]} failed the checks")
-
-
-
-        
+            messagebox.showwarning("Error",f"{itemsdict[itemkey][1]} failed the checks\nThis may cause the package to cause a error!\nTotal Bug Count: {len(failed)}")
+        else:
+            messagebox.showinfo("Info",f"Debugger found no issues with {itemsdict[itemkey][1]}.")
 
     debugbutton = tk.Button(root, text="debugger",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=debuger)
     debugbutton.place(x=415, y=250)
+
+    
 
     def export():
         log.loginfo("Exporting")
@@ -787,6 +952,15 @@ def intui():
 
     buttone = tk.Button(root, text="                    Export                    ",font=("Arial", 11) ,bd=0 ,command=export,bg=theme3,fg=theme1)
     buttone.place(x=450, y=400)
+
+    #Handle closing
+
+    def ending():
+        if messagebox.askyesno("Warning", 'Are you sure you want to exit?\nWe dont support save and loading.\nTIP: You can export to "save" your work.'):
+            forcedelete(os.path.join(path,"packages"))
+            root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", ending)
 
     root.mainloop()
 

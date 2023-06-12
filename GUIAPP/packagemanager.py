@@ -92,19 +92,8 @@ def patch_vtfs(item_dict):
         
         pathtoimg = pathtoimg.replace("\\","/")
 
-        #Patching image
-
-        first_image = Image.new("RGB", (128, 128), (255, 255, 255))
-
-        second_image = Image.open(pathtoimg)
-
-        second_image = second_image.resize((128, 128), Image.ANTIALIAS)
-
-        first_image.paste(second_image, (0, 0))
-
-        first_image.save(pathtoimg)
-
         print(f'vtex2 convert -f dxt5 "{pathtoimg}"')
+        os.chdir(path)
         os.system(f'vtex2 convert --version 7.2 -f dxt5 "{pathtoimg}"')
         os.remove(vtfpath)
         os.rename(pathtoimg.replace(os.path.basename(pathtoimg),os.path.splitext(os.path.basename(pathtoimg))[0] + ".vtf"),vtfpath)

@@ -21,6 +21,9 @@ if os.path.basename(sys.executable) == "python.exe":
 else:
     path = sys.executable.replace(os.path.basename(sys.executable),"")
 
+while os.path.isdir(os.path.join(path,"packages")):
+    shutil.rmtree(os.path.join(path,"packages"), ignore_errors=True)
+
 def browse_file():
     file_path = filedialog.askopenfilename()
     path_entry.delete(0, 'end')
