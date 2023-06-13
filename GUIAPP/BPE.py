@@ -1016,14 +1016,22 @@ def intui():
 
     def export():
         log.loginfo("Exporting")
+        shutil.make_archive(os.path.basename(filepath),"zip",packagemanager.packagesdir)
         try:
-            os.remove(os.path.basename(filepath))
-        except:
+            os.makedirs(os.path.join(path,"output"))
+        except FileExistsError:
             pass
-        shutil.make_archive(os.path.basename(filepath), 'zip', packagemanager.packagesdir)
-        shutil.copy(os.path.basename(filepath) + ".zip",os.path.basename(filepath))
-        os.remove(os.path.basename(filepath) + ".zip")
-        messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {path}')
+        counter = 1
+        if not os.path.isfile(os.path.join(path,"output",f"{os.path.basename(filepath)}.bee_pack")):
+            os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.basename(filepath)}.bee_pack"))
+        else:
+            while True:
+                if not os.path.isfile(os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack")):
+                    os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack"))
+                    break
+                else:
+                    counter += 1
+        messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack")}')
         log.loginfo("Exported!")
         log.loginfo(packagemanager.packagesdir)
         log.loginfo(os.path.basename(filepath))
