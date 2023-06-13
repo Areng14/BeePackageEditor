@@ -50,6 +50,7 @@ def intui():
             name_variable.set(selected)
         else:
             name_variable.set(selected[:17] + "...")
+        desc_variable.set(getdescription())
         log.loginfo(f"Selected = {selected}")
 
     if os.path.basename(sys.executable) == "python.exe":
@@ -164,6 +165,7 @@ def intui():
     global debugbutton
     global frame
     global buttone
+    global desc_box
     global name_box
     global button
     global iopopup
@@ -178,17 +180,11 @@ def intui():
     selected = None
     fuckyouforspammingbutton = 0
     root = tk.Tk()
+    root.resizable(False, False)
     root.geometry("800x600+300+200")
     root.configure(bg=theme2)
     root.title("Beemod Package Editor (BPE) V.2")
     root.wm_iconbitmap(os.path.join(path,"imgs/","bpe.ico"))
-
-    #Style stuff
-    style = ttk.Style()
-    style.configure("Rounded.TButton", relief="flat", background="white", 
-                    padding=3, borderwidth=2, font=("Arial", 12), 
-                    width=20, height=5, highlightthickness=0,
-                    borderradius=5)
 
     # Create a list of items
 
@@ -220,6 +216,65 @@ def intui():
     name_box = tk.Label(root, textvariable=name_variable,bg=theme2,fg=theme1, anchor="center",width=17,bd=0,font=("Arial", 20, "bold"))
     name_box.place(x=410, y=50)
     #Name of item
+
+    #Item description
+
+    def getdescription():
+        key = finditemkey()
+        with open(os.path.join(packagemanager.packagesdir, "items", itemsdict[key][2], "properties.txt")) as file:
+            file_content = file.read()  # Read the file content as a string
+            blocks = assetmanager.find_blocks(file_content, '"Description" ', pattern=r'({key}\s*\{{(?:.*?\n)*?\s*\}})')
+            if blocks is not None:
+                blocks = ''.join(blocks)
+
+                # Use regular expressions to extract the description text
+                matches = re.findall(r'"" "(.*?)"', blocks)
+                max_lines = 3
+                limited_matches = matches[:max_lines]
+                readable_string = '\n'.join(limited_matches)
+                if len(matches) > max_lines:
+                    readable_string += '\n...'
+                return readable_string
+
+            else:
+                matches = re.findall(r'"Description"\s+"(.*?)"', file_content)
+                if matches:
+                    readable_string = '\n'.join(matches)
+                    limit = 60
+                    if len(readable_string) > limit:
+                        readable_string = readable_string[:limit - 3] + "..."
+                    return readable_string
+
+                else:
+                    return None
+
+    desc_variable = tk.StringVar()
+    desc_variable.set(getdescription())
+    desc_box = tk.Label(root, textvariable=desc_variable,bg=theme2,fg=theme1, anchor="w",width=50,bd=0,font=("Arial", 8))
+    desc_box.place(x=410, y=100)
+    def showdesc(event):
+        key = finditemkey()
+        with open(os.path.join(packagemanager.packagesdir, "items", itemsdict[key][2], "properties.txt")) as file:
+            file_content = file.read()  # Read the file content as a string
+            blocks = assetmanager.find_blocks(file_content, '"Description" ', pattern=r'({key}\s*\{{(?:.*?\n)*?\s*\}})')
+            if blocks is not None:
+                blocks = ''.join(blocks)
+
+                # Use regular expressions to extract the description text
+                matches = re.findall(r'"" "(.*?)"', blocks)
+                readable_string = '\n'.join(matches)
+                messagebox.showinfo("Description", readable_string)
+
+            else:
+                matches = re.findall(r'"Description"\s+"(.*?)"', file_content)
+                if matches:
+                    readable_string = '\n'.join(matches)
+                    messagebox.showinfo("Description", readable_string)
+
+                else:
+                    messagebox.showinfo("Description", "None")
+
+    desc_box.bind("<Button-1>", showdesc)
 
     #Autopack 
     def autopack():
@@ -498,6 +553,7 @@ def intui():
         global text
         global name_box
         global listbox
+        global desc_box
         global buttone
         global theme2
         global theme3
@@ -522,6 +578,7 @@ def intui():
         menu.configure(activebackground=theme1, activeforeground=theme2)
         menu_button.configure(image=menu_icon)
         frame.configure(bg=theme2)
+        desc_box.configure(bg=theme2,fg=theme1)
         root.configure(bg=theme2)
         if popup:
             popup.configure(bg=theme2)
@@ -538,7 +595,7 @@ def intui():
     menu_button = tk.Button(root, image=menu_icon, width=16, height=16, bd=0)
     menu_button.place(x=770, y=10)
     menu = tk.Menu(root, tearoff=0, bg=theme2,fg=theme1,bd=0)
-    menu.add_command(label="Reload Packages", command=refreshpack(), activebackground=theme1, activeforeground=theme2)
+    menu.add_command(label="Reload Packages", command=refreshpack, activebackground=theme1, activeforeground=theme2)
     menu.add_command(label="Change Package", command=changepack,activebackground=theme1, activeforeground=theme2)
     menu.add_separator()
     menu.add_command(label="Change Theme", command=changetheme,activebackground=theme1, activeforeground=theme2)
@@ -550,7 +607,7 @@ def intui():
 
     #Buttons
     autobutton = tk.Button(root, text="Autopacker",command=autopack,font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1)
-    autobutton.place(x=610, y=200)
+    autobutton.place(width=128, height=32,x=610, y=200)
 
     #Leak checker
 
@@ -761,7 +818,7 @@ def intui():
         log.loginfo("Completed.")
 
     inputbutton = tk.Button(root, text="Connection Editor",command=ioedit,font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1)
-    inputbutton.place(x=609, y=250)
+    inputbutton.place(width=128, height=32,x=609, y=250)
 
     #vbsp_editor
 
@@ -783,12 +840,17 @@ def intui():
 
         #ui stuff
         def open_file():
+            global startinstance
             file_path = pathtovbsp
-            #Format it!
+            # Format the file
             assetmanager.format_file(file_path)
             with open(file_path, "r") as file:
+                file_content = file.read()
                 text.delete("1.0", tk.END)
-                text.insert("1.0", file.read())
+                text.insert("1.0", file_content)
+                pattern = r'"Changeinstance"\s+"(.*?)"'
+                startinstance = re.findall(pattern, file_content)
+                print(startinstance)
 
         def add_text(text_widget, text):
             current_index = text_widget.index(tk.INSERT)
@@ -800,6 +862,19 @@ def intui():
             if file_path is None:
                 return
             data = text.get('1.0', 'end')
+
+            # Remove unused instances
+            pattern = r'"Changeinstance"\s+"(.*?)"'
+            endinstance = re.findall(pattern, data)
+            print(endinstance)
+
+            missing_items = [item for item in startinstance if item not in endinstance]
+            choice = messagebox.askyesno("Missing Path","We detected there was some missing instances. Would you like to remove the instances from your package?")
+            if choice:
+                for item in missing_items:
+                    log.logwarn(f"Removing {item} because it is removed so therefor it is useless.")
+                    while os.path.isfile(os.path.join(packagemanager.packagesdir, "resources", "instances", "beepkg", itemsdict[itemkey][2], os.path.basename(item))):
+                        os.remove(os.path.join(packagemanager.packagesdir, "resources", "instances", "beepkg", itemsdict[itemkey][2], os.path.basename(item)))
             with open(file_path, 'w') as file:
                 file.write(data)
             messagebox.showinfo("Info", "File Saved Successfully")
@@ -822,7 +897,10 @@ def intui():
         def makeinstancepath():
             messagebox.showinfo("Info",f"Please select the instance file (.vmf)\nPackage files can be found at '{packagemanager.packagesdir}'")
             while True:
-                file = filedialog.askopenfilename()
+                file = filedialog.askopenfilename(filetypes=[("Valve Map Format", "*.vmf")],initialdir=os.path.join(path,"packages","resources","instances"))
+                if packagemanager.packagesdir not in file:
+                    os.rename(file,os.path.join(packagemanager.packagesdir,"resources","instances","beepkg",itemsdict[itemkey][2],os.path.basename(file)))
+                    messagebox.showinfo("Info",f"{os.path.splitext(file)[0]} wasnt in your package so we added it.")
                 if os.path.splitext(file)[1] == ".vmf":
                     break
                 else:
@@ -867,7 +945,7 @@ def intui():
 
 
     vbspbutton = tk.Button(root, text="vbsp_editor",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=vbsp_editor)
-    vbspbutton.place(x=410, y=200)
+    vbspbutton.place(width=128, height=32,x=410, y=200)
 
 
 
@@ -899,14 +977,14 @@ def intui():
 
         syntaxcheck1 = ["(","{"]
         syntaxcheck2 = [")","}"]
-        failed = []
+        failed = {}
         for checkthis in checklistfile:
             for x in range(len(syntaxcheck1)):
                 if checkforsyntax(packagemanager.packagesdir + checkthis,syntaxcheck1[x],syntaxcheck2[x]) == True:
                     log.loginfo(f"{os.path.basename(checkthis)} PASS: CHECK{x + 1}")
                 else:
                     log.loginfo(f"{os.path.basename(checkthis)} FAIL: CHECK{x + 1}")
-                    failed.append(os.path.basename(checkthis))
+                    failed[itemsdict[itemkey][1]] = "Syntax Check"
 
             #Path checking
             if os.path.isfile(os.path.join(packagemanager.packagesdir,"items",itemsdict[itemkey][2],"vbsp_config.cfg")) == True:
@@ -924,15 +1002,15 @@ def intui():
                         log.loginfo(f"{os.path.basename(instance)} passed isfile check!")
                     else:
                         log.loginfo(f"{os.path.basename(instance)} failed isfile check!")
-                        failed.append(os.path.basename(instance))
+                        failed[itemsdict[itemkey][1]] = "Path Check"
         
         if failed:
-            messagebox.showwarning("Error",f"{itemsdict[itemkey][1]} failed the checks\nThis may cause the package to cause a error!\nTotal Bug Count: {len(failed)}")
+            messagebox.showwarning("Error",f"{itemsdict[itemkey][1]} failed the checks\nThis may cause the package to cause a error!\n\nFailed Results: {failed}")
         else:
             messagebox.showinfo("Info",f"Debugger found no issues with {itemsdict[itemkey][1]}.")
 
     debugbutton = tk.Button(root, text="debugger",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=debuger)
-    debugbutton.place(x=415, y=250)
+    debugbutton.place(width=128, height=32,x=410, y=250)
 
     
 
