@@ -39,8 +39,17 @@ def intui():
 
     global name_variable,desc_variable
     def updatainfo():
+        itemkey = finditemkey()
         global name_variable,desc_variable
-        name_variable.set(selected)
+        selected = listbox.get(listbox.curselection())[1:]
+        if len(selected) <= 17:
+            newvar = selected
+        else:
+            newvar = selected[:17] + "..."
+        if itemsdict[itemkey][3] == True:
+            name_variable.set("[D] " + newvar)
+        else:
+            name_variable.set(newvar)
         desc_variable.set(getdescription())
 
     def forcedelete(dir):
@@ -52,10 +61,15 @@ def intui():
         global selected
         # Get the selected item from the listbox
         selected = listbox.get(listbox.curselection())[1:]
+        itemkey = finditemkey()
         if len(selected) <= 17:
-            name_variable.set(selected)
+            newvar = selected
         else:
-            name_variable.set(selected[:17] + "...")
+            newvar = selected[:17] + "..."
+        if itemsdict[itemkey][3] == True:
+            name_variable.set("[D] " + newvar)
+        else:
+            name_variable.set(newvar)
         desc_variable.set(getdescription())
         log.loginfo(f"Selected = {selected}")
 
@@ -1077,6 +1091,7 @@ def intui():
     rmbutton.place(width=128, height=32,x=410, y=300)
 
     def disitem():
+        global itemsdict
         itemkey = finditemkey()
         #Add some code to remove info block
         with open(os.path.join(packagemanager.packagesdir,"info.txt"),"r") as file:
@@ -1090,6 +1105,10 @@ def intui():
                 with open(os.path.join(packagemanager.packagesdir,"info.txt"),"w") as file:
                     newfile = filecontent.replace("\t","").replace(item,item.replace('"Item"','"DIS_Item"'))
                     file.write(assetmanager.format_string(newfile))
+                log.loginfo(f"Disabled {itemsdict[itemkey][1]}")
+                #Change itemdict
+                itemsdict[itemkey] = [itemsdict[itemkey][0],itemsdict[itemkey][1],itemsdict[itemkey][2],True]
+                updatainfo()
                 messagebox.showinfo("Info",f"Disabled {itemsdict[itemkey][1]}")
         
         #Enable
@@ -1106,9 +1125,11 @@ def intui():
                     with open(os.path.join(packagemanager.packagesdir,"info.txt"),"w") as file:
                         newfile = filecontent.replace("\t","").replace(item,item.replace('"DIS_Item"','"Item"'))
                         file.write(assetmanager.format_string(newfile))
+                    log.loginfo(f"Enabled {itemsdict[itemkey][1]}")
+                    #Change itemdict
+                    itemsdict[itemkey] = [itemsdict[itemkey][0],itemsdict[itemkey][1],itemsdict[itemkey][2],False]
+                    updatainfo()
                     messagebox.showinfo("Info",f"Enabled {itemsdict[itemkey][1]}")
-        #Change itemdict
-        itemsdict[itemkey] = [itemsdict[itemkey][0],itemsdict[itemkey][1],itemsdict[itemkey][2],True]
 
     disablebutton = tk.Button(root, text="Toggle Item",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=disitem)
     disablebutton.place(width=128, height=32,x=610, y=300)
