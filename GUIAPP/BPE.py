@@ -37,6 +37,12 @@ def intui():
         return filedialog.askdirectory()
         #Checks for p2's directory
 
+    global name_variable,desc_variable
+    def updatainfo():
+        global name_variable,desc_variable
+        name_variable.set(selected)
+        desc_variable.set(getdescription())
+
     def forcedelete(dir):
         while os.path.isdir(dir):
             shutil.rmtree(dir, ignore_errors=True)
@@ -169,6 +175,7 @@ def intui():
     global name_box
     global button
     global iopopup
+    global selected
     global popup
     typevar = "Add Button Type"
     typenum = 1
@@ -1012,6 +1019,63 @@ def intui():
     debugbutton = tk.Button(root, text="debugger",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=debuger)
     debugbutton.place(width=128, height=32,x=410, y=250)
 
+    def rmitem():
+        global selected
+        itemkey = finditemkey()
+        if messagebox.askyesno("Remove Item",f"Are you sure you want to remove {itemsdict[itemkey][1]}?"):
+            #Add some code to remove info block
+            with open(os.path.join(packagemanager.packagesdir,"info.txt"),"r") as file:
+                filecontent = file.read()
+                rmitemlist = assetmanager.find_blocks(filecontent, '"Item"', r'{key}\s*{{[^}}]*}}\s*}}\s*}}\s*')
+
+            for item in rmitemlist:
+                if f'"ID""{itemsdict[itemkey][0]}"' in item.replace("\t","").replace(" ",""):
+                    log.loginfo("Found Target")
+                    with open(os.path.join(packagemanager.packagesdir,"info.txt"),"w") as file:
+                        print(item)
+                        newfile = filecontent.replace("\t","").replace(item,"")
+
+                        file.write(assetmanager.format_string(newfile))
+
+            log.loginfo("Removed item info from info.txt")
+            #Remove folders
+            dirs = (os.path.join(packagemanager.packagesdir,"items",itemsdict[itemkey][2]),os.path.join(packagemanager.packagesdir,"resources","instances","beepkg",itemsdict[itemkey][2]))
+            files = (os.path.join(packagemanager.packagesdir,"resources","materials","models","props_map_editor","palette","beepkg",f"{itemsdict[itemkey][0]}.vtf"),os.path.join(packagemanager.packagesdir,"resources","materials","models","props_map_editor","palette","beepkg",f"{itemsdict[itemkey][0]}.vmt"),os.path.join(packagemanager.packagesdir,"resources","BEE2","items","beepkg",f"{itemsdict[itemkey][0]}.png"))
+
+            for dir in dirs:
+                try:
+                    forcedelete(dir)
+                    log.logerror(f"Removed {dir}")
+                except PermissionError:
+                    log.logerror(f"No permission to remove {dir}")
+                    messagebox.showerror("Error",f"No permission to remove {dir}")
+
+            for file in files:
+                try:
+                    os.remove(file)
+                    log.logerror(f"Removed {dir}")
+                except PermissionError:
+                    log.logerror(f"No permission to remove {dir}")
+                    messagebox.showerror("Error",f"No permission to remove {file}")
+                except FileNotFoundError:
+                    pass
+
+            #Remove from listbox
+            items.remove(selected)
+            listbox.delete(0, tk.END)
+            for item in items:
+                listbox.insert(tk.END, " " + item)
+
+            #Select new item
+            selected = choice(items)
+            updatainfo()
+            messagebox.showinfo("Info",f"Removed {itemsdict[itemkey][2]}.")
+            log.logerror(f"Removed {itemsdict[itemkey][2]}")
+
+
+    rmbutton = tk.Button(root, text="Remove Item",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=rmitem)
+    rmbutton.place(width=128, height=32,x=410, y=300)
+
     
 
     def export():
@@ -1024,14 +1088,15 @@ def intui():
         counter = 1
         if not os.path.isfile(os.path.join(path,"output",f"{os.path.basename(filepath)}.bee_pack")):
             os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.basename(filepath)}.bee_pack"))
+            messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.basename(filepath)}.bee_pack")}')
         else:
             while True:
                 if not os.path.isfile(os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack")):
                     os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack"))
+                    messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack")}')
                     break
                 else:
                     counter += 1
-        messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack")}')
         log.loginfo("Exported!")
         log.loginfo(packagemanager.packagesdir)
         log.loginfo(os.path.basename(filepath))
