@@ -144,7 +144,28 @@ def readfile(file):
                         if '"NAME"' in removeformat(editlinelist[x]).upper():
                             itemname = editlinelist[x].replace('"Name"',"").replace("\t","").replace('"',"").replace("'","").replace("  ","")
                             break
-                items[counter2] = [itemid,itemname,itemconfig]
+                disabled = False
+                items[counter2] = [itemid,itemname,itemconfig,disabled]
+                counter2 += 1
+            elif removeformat(line.upper()) == '"DIS_ITEM"':
+                itemid,itemconfig,itemname = "","",""
+                #We have detected an item now we will read the thing
+                for x in range(counter,len(linelist)):
+                    if '"ID"' in removeformat(linelist[x].upper()):
+                        itemid = linelist[x].replace(" ","").replace('"ID"',"").replace("\t","").replace('"',"").replace("'","")
+                    if '"BEE2_CLEAN"' in removeformat(linelist[x].upper()):
+                        itemconfig = linelist[x].replace(" ","").replace('"BEE2_CLEAN"',"").replace("\t","").replace('"',"").replace("'","")
+                    if itemid and itemconfig:
+                        break
+                #Get name of item
+                with open(os.path.join(packagesdir,"items",removeformat(itemconfig),"editoritems.txt"),"r") as editorfile:
+                    editlinelist = editorfile.read().split("\n")
+                    for x in range(len(editlinelist)):
+                        if '"NAME"' in removeformat(editlinelist[x]).upper():
+                            itemname = editlinelist[x].replace('"Name"',"").replace("\t","").replace('"',"").replace("'","").replace("  ","")
+                            break
+                disabled = True
+                items[counter2] = [itemid,itemname,itemconfig,disabled]
                 counter2 += 1
             counter += 1
         #Goes over info.txt and finds inportant info

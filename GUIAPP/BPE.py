@@ -825,7 +825,7 @@ def intui():
         log.loginfo("Completed.")
 
     inputbutton = tk.Button(root, text="Connection Editor",command=ioedit,font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1)
-    inputbutton.place(width=128, height=32,x=609, y=250)
+    inputbutton.place(width=128, height=32,x=610, y=250)
 
     #vbsp_editor
 
@@ -1076,6 +1076,43 @@ def intui():
     rmbutton = tk.Button(root, text="Remove Item",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=rmitem)
     rmbutton.place(width=128, height=32,x=410, y=300)
 
+    def disitem():
+        itemkey = finditemkey()
+        #Add some code to remove info block
+        with open(os.path.join(packagemanager.packagesdir,"info.txt"),"r") as file:
+            filecontent = file.read()
+            rmitemlist = assetmanager.find_blocks(filecontent, '"Item"', r'{key}\s*{{[^}}]*}}\s*}}\s*}}\s*')
+        found = False
+        for item in rmitemlist:
+            if f'"ID""{itemsdict[itemkey][0]}"' in item.replace("\t","").replace(" ",""):
+                log.loginfo("Found Target")
+                found = True
+                with open(os.path.join(packagemanager.packagesdir,"info.txt"),"w") as file:
+                    newfile = filecontent.replace("\t","").replace(item,item.replace('"Item"','"DIS_Item"'))
+                    file.write(assetmanager.format_string(newfile))
+                messagebox.showinfo("Info",f"Disabled {itemsdict[itemkey][1]}")
+        
+        #Enable
+        if not found:
+            #Add some code to remove info block
+            with open(os.path.join(packagemanager.packagesdir,"info.txt"),"r") as file:
+                filecontent = file.read()
+                rmitemlist = assetmanager.find_blocks(filecontent, '"DIS_Item"', r'{key}\s*{{[^}}]*}}\s*}}\s*}}\s*')
+            found = False
+            for item in rmitemlist:
+                if f'"ID""{itemsdict[itemkey][0]}"' in item.replace("\t","").replace(" ",""):
+                    log.loginfo("Found Target")
+                    found = True
+                    with open(os.path.join(packagemanager.packagesdir,"info.txt"),"w") as file:
+                        newfile = filecontent.replace("\t","").replace(item,item.replace('"DIS_Item"','"Item"'))
+                        file.write(assetmanager.format_string(newfile))
+                    messagebox.showinfo("Info",f"Enabled {itemsdict[itemkey][1]}")
+        #Change itemdict
+        itemsdict[itemkey] = [itemsdict[itemkey][0],itemsdict[itemkey][1],itemsdict[itemkey][2],True]
+
+    disablebutton = tk.Button(root, text="Toggle Item",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=disitem)
+    disablebutton.place(width=128, height=32,x=610, y=300)
+
     
 
     def export():
@@ -1087,12 +1124,12 @@ def intui():
             pass
         counter = 1
         if not os.path.isfile(os.path.join(path,"output",f"{os.path.basename(filepath)}.bee_pack")):
-            os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.basename(filepath)}.bee_pack"))
+            os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.basename(filepath)}"))
             messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.basename(filepath)}.bee_pack")}')
         else:
             while True:
                 if not os.path.isfile(os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack")):
-                    os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack"))
+                    os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter})"))
                     messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack")}')
                     break
                 else:
