@@ -887,7 +887,6 @@ def intui():
             # Remove unused instances
             pattern = r'"Changeinstance"\s+"(.*?)"'
             endinstance = re.findall(pattern, data)
-            print(endinstance)
 
             missing_items = [item for item in startinstance if item not in endinstance]
             choice = messagebox.askyesno("Missing Path","We detected there was some missing instances. Would you like to remove the instances from your package?")
@@ -898,7 +897,49 @@ def intui():
                         os.remove(os.path.join(packagemanager.packagesdir, "resources", "instances", "beepkg", itemsdict[itemkey][2], os.path.basename(item)))
             with open(file_path, 'w') as file:
                 file.write(data)
-            messagebox.showinfo("Info", "File Saved Successfully")
+
+            log.loginfo("Changing editoritems.txt")
+            #Check for cube type etc and add it to editoritems
+
+            addthis = []
+
+            if "$CUBE_TYPE 0" in data.upper():
+                log.loginfo("Detected Cube Type")
+                addthis.append(f'"CubeType"\n{{\n"DefaultValue" "0"\n"Index" "{len(addthis) + 2}"\n}}')
+            if "$BUTTON_TYPE = 0" in data.upper():
+                log.loginfo("Detected Button Type")
+                addthis.append(f'"ButtonType"\n{{\n"DefaultValue" "0"\n"Index" "{len(addthis) + 2}"\n}}')
+            if "$TIMER_DELAY == 3" in data.upper() and not '"BEE2_CUBE_COLORISER"' in data.upper():
+                log.loginfo("Detected Timer Type")
+                addthis.append(f'"TimerDelay"\n{{\n"DefaultValue" "0"\n"Index" "{len(addthis) + 2}"\n}}')
+            elif '"BEE2_CUBE_COLORISER"' in data.upper() and "$TIMER_DELAY == 3" in data.upper():
+                messagebox.showerror("Warning","You have cube colorizer and timer delay.\nCube Colorizer requires the use of the timer.")
+                return
+            if "$START_ENABLED = 1" in data.upper() or "$START_ENABLED = 0" in data.upper():
+                log.loginfo("Detected Enabled Type")
+                addthis.append(f'"StartEnabled"\n{{\n"DefaultValue" "0"\n"Index" "{len(addthis) + 2}"\n}}')
+            if "$START_REVERSED = 1" in data.upper() or "$START_REVERSED = 0" in data.upper():
+                log.loginfo("Detected Reversed Type")
+                addthis.append(f'"StartReversed"\n{{\n"DefaultValue" "0"\n"Index" "{len(addthis) + 2}"\n}}')
+            if '"BEE2_CUBE_COLORISER"' in data.upper():
+                log.loginfo("Detected Colorizer")
+                addthis.append(f'"TimerDelay"\n{{\n"DefaultValue" "0"\n"Index" "{len(addthis) + 2}"\n}}')
+
+            if addthis:
+                writethis = []
+                for item in addthis:
+                    writethis.append(item)
+                bwritethis = '"ConnectionCount"\n{\n"DefaultValue"	"0"\n"Index"	"1"\n}'
+                bwritethis += "\n" + "\n".join(writethis)
+                writethis = bwritethis + "\n"
+
+                with open(os.path.join(packagemanager.packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"),"r") as file:
+                    content = file.read()
+                properties = assetmanager.find_blocks(content.replace("\t", "").replace(" ", ""), '"Properties"', r'{key}\s*{{\s*((?:[^{{}}]|{{[^{{}}]*}})*)\s*}}')
+                with open(os.path.join(packagemanager.packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"),"w") as file:
+                    file.write(assetmanager.format_string(content.replace("\t","").replace(" ","").replace(properties[0].replace(" ",""),writethis.replace(" ",""))))
+
+                messagebox.showinfo("Info", "File Saved Successfully")
 
         global popup
         global text
@@ -946,6 +987,38 @@ def intui():
 
             add_text(text,assetmanager.format_string(cubetypevbsp))
 
+        def timertypeadd():
+            cubetypevbsp = assetmanager.getdata("vbsp/timer")
+
+            #Replace vars
+            cubetypevbsp = cubetypevbsp.replace("\t","").replace("vartochange(id)",f"<{itemsdict[itemkey][0].upper()}>")
+
+            add_text(text,assetmanager.format_string(cubetypevbsp))
+
+        def enabletypeadd():
+            cubetypevbsp = assetmanager.getdata("vbsp/enable")
+
+            #Replace vars
+            cubetypevbsp = cubetypevbsp.replace("\t","").replace("vartochange(id)",f"<{itemsdict[itemkey][0].upper()}>")
+
+            add_text(text,assetmanager.format_string(cubetypevbsp))
+
+        def reversetypeadd():
+            cubetypevbsp = assetmanager.getdata("vbsp/reverse")
+
+            #Replace vars
+            cubetypevbsp = cubetypevbsp.replace("\t","").replace("vartochange(id)",f"<{itemsdict[itemkey][0].upper()}>")
+
+            add_text(text,assetmanager.format_string(cubetypevbsp))
+
+        def coloradd():
+            cubetypevbsp = assetmanager.getdata("vbsp/color")
+
+            #Replace vars
+            cubetypevbsp = cubetypevbsp.replace("\t","").replace("vartochange(id)",f"<{itemsdict[itemkey][0].upper()}>")
+
+            add_text(text,assetmanager.format_string(cubetypevbsp))
+
         menubar = tk.Menu(popup)
         file_menu = tk.Menu(menubar, tearoff=0)
         file_menu.add_command(label="Save", command=save_file)
@@ -955,8 +1028,10 @@ def intui():
         text_menu = tk.Menu(menubar, tearoff=0)
         text_menu.add_command(label="Cube Type", command=cubetypeadd)
         text_menu.add_command(label="Button Type", command=btntypeadd)
-        text_menu.add_command(label="Timer Type", command=save_file)
-        text_menu.add_command(label="Timer Type", command=save_file)
+        text_menu.add_command(label="Timer Type", command=timertypeadd)
+        text_menu.add_command(label="Enable Type", command=enabletypeadd)
+        text_menu.add_command(label="Reverse Type", command=reversetypeadd)
+        text_menu.add_command(label="Colorizer", command=coloradd)
         text_menu.add_separator()
         text_menu.add_command(label="Add Instance Path", command=makeinstancepath)
         menubar.add_cascade(label="Text", menu=text_menu)
