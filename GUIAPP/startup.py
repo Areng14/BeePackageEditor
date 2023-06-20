@@ -1,6 +1,8 @@
 import BPE
 import tkinter as tk
 import os
+import requests
+from webbrowser import open as webopen
 import zipfile
 import traceback
 import pyperclip
@@ -9,6 +11,18 @@ import sys
 import shutil
 from tkinter import filedialog
 import packagemanager
+
+version = "2.0_DEV"
+
+if "_DEV" not in version.upper():
+    if requests.get("https://versioncontrol.orange-gamergam.repl.co/api/bpe").json() <= float(version):
+        print("No updates are currently available.")
+    else:
+        versionask = messagebox.askyesno('Update',f'There is an update available. You are using ({version}) Newest is ({requests.get("https://versioncontrol.orange-gamergam.repl.co/api/bpe").json()})\nWould you like to download it?')
+        if versionask == True:
+            webopen("https://github.com/Areng14/BeePackageEditor/releases")
+        else:
+            pass
 
 root = tk.Tk()
 root.geometry("256x256+300+200")
@@ -24,6 +38,7 @@ else:
 
 while os.path.isdir(os.path.join(path,"packages")):
     shutil.rmtree(os.path.join(path,"packages"), ignore_errors=True)
+
 
 def browse_file():
     file_path = filedialog.askopenfilename()

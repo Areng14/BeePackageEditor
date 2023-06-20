@@ -1,12 +1,16 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import *
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageColor
 import zipfile
+import ast
 import assetmanager
 import log
+import numpy as np
 from random import choice
+from srctools import Property
 import traceback
+import winreg
 import requests
 import re
 import packagemanager
@@ -26,16 +30,63 @@ def intui():
                 return x
 
     def findp2dir():
-        leter = "ABCDEFGHIJKLMNOPQRSTUVWXZY"
-        for x in leter:
-            if os.path.isdir(f"{x}:\Program Files (x86)\Steam\steamapps\common\Portal 2") == True:
-                return f"{x}:\Program Files (x86)\Steam\steamapps\common\Portal 2"
-            if os.path.isdir(f"{x}:\SteamLibrary\steamapps\common\Portal 2") == True:
-                return f"{x}:\Program Files (x86)\Steam\steamapps\common\Portal 2"
-        #Handles no p2 dir
-        messagebox.showerror("Error","Portal 2's directory not found! Please select game folder.")
-        return filedialog.askdirectory()
-        #Checks for p2's directory
+        """
+        Return a tuple with with all the steam libraries that it can find. The first library in the tuple will always be the main Steam directory.
+
+        First checks the registry key for SteamPath, and if it can't find it, the path will be prompted to the user.
+        
+        CODE WAS FROM https://github.com/DarviL82/HAInstaller/blob/main/src/HAInstaller.py LINE 200:253 AND WAS EDITED
+        """
+
+        log.loginfo("Finding Steam")
+
+        try:
+            # Read the SteamPath registry key
+            hkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "SOFTWARE\Valve\Steam")
+            folder = winreg.QueryValueEx(hkey, "SteamPath")[0]
+            winreg.CloseKey(hkey)
+        except Exception:
+            messagebox.showerror("Error","Could not find steam path!\nPlease input your steam path.")
+            folder = filedialog.askdirectory()
+
+        # Continue asking for path until it is valid
+        while not os.path.isdir(folder):
+            messagebox.showerror("Error","Could not find steam path!\nPlease input your steam path.")
+            folder = filedialog.askdirectory()
+
+        steamlibs: list[str] = [folder.lower()]
+
+        # Find other steam libraries (thanks TeamSpen)
+        try:
+            with open(os.path.join(folder, "steamapps/libraryfolders.vdf")) as file:
+                conf = Property.parse(file)
+        except FileNotFoundError:
+            pass
+        else:
+            for prop in conf.find_key("LibraryFolders"):
+                if prop.name.isdigit():
+                    lib = prop[0].value
+                    if os.path.isdir(os.path.join(lib, "steamapps/common")):
+                        steamlibs.append(lib.replace("\\", "/").lower())
+
+        # remove possible duplicates
+        steamlibs = tuple(set(steamlibs))
+
+        if len(steamlibs) > 1:
+            log.loginfo("Found steam directories")
+        else:
+            log.loginfo(f"Found steam directories {folder}")
+
+        #convert to p2 dir
+        modified_paths = [path + '/steamapps/common' for path in steamlibs]
+
+        p2dir = None
+
+        for dir in modified_paths:
+            if os.path.isfile(os.path.join(dir,"Portal 2","portal2.exe")):
+                p2dir = os.path.join(dir,"Portal 2")
+
+        return p2dir
 
     global name_variable,desc_variable
     def updatainfo():
@@ -86,6 +137,28 @@ def intui():
         img = Image.open(os.path.join(imgdir,name_img))
         return img.resize(wxh)
 
+    def convert_color(image, old_color, new_color):
+        # Convert the image to RGB mode
+        image = image.convert("RGB")
+        
+        # Get the width and height of the image
+        width, height = image.size
+        
+        # Loop through each pixel of the image
+        for x in range(width):
+            for y in range(height):
+                # Get the RGB values of the pixel
+                r, g, b = image.getpixel((x, y))
+                
+                # Convert the RGB values to hex format
+                hex_color = f"#{r:02x}{g:02x}{b:02x}"
+                
+                # If the pixel color matches the old_color, replace it with the new_color
+                if hex_color == old_color:
+                    r, g, b = new_color[1:3], new_color[3:5], new_color[5:7]
+                    image.putpixel((x, y), (int(r, 16), int(g, 16), int(b, 16)))
+        return image
+
     def cleandir(folder):
         for root, dirs, files in os.walk(folder, topdown=False):
             for dir in dirs:
@@ -99,13 +172,50 @@ def intui():
     global theme1
     global theme2
     global theme3
+
+    global dtheme1
+    global ltheme1
     theme1 = "#878787"
     theme2 = "#232323"
     theme3 = "#4d4d4d"
+
+    ltheme1 = "#474747"
+    ltheme2 = "#dedede"
+    ltheme3 = "#7a7a7a"
+
+    dtheme1 = "#878787"
+    dtheme2 = "#232323"
+    dtheme3 = "#4d4d4d"
+
     items = []
     editor = []
     id = []
     global itemsdict
+
+    global color_mappings
+
+
+    dbtnmappings = [
+        (dtheme1, dtheme3),
+        (dtheme2, dtheme2),
+        (dtheme3, dtheme1)
+    ]
+
+    lbtnmappings = [
+        (dtheme1, ltheme3),
+        (dtheme2, ltheme2),
+        (dtheme3, ltheme1),
+    ]
+
+    def themefyimg(image,dmapping,lmapping):
+        global theme1, dtheme1
+        if theme1 == dtheme1:
+            for original_color, theme_color in dmapping:
+                image = convert_color(image, original_color, theme_color)
+        else:
+            for original_color, theme_color in lmapping:
+                image = convert_color(image, original_color, theme_color)
+        return image
 
     #Refresh Package
     def refreshpack():
@@ -176,6 +286,8 @@ def intui():
     global typenum
     global typevar
     global menu
+    global disablebutton
+    global rmbutton
     global vbspbutton
     global listbox
     global inputbutton
@@ -570,6 +682,8 @@ def intui():
         global menu_icon
         global frame
         global popup
+        global rmbutton
+        global disablebutton
         global iopopup
         global text
         global name_box
@@ -590,7 +704,7 @@ def intui():
             theme2 = "#232323"
             theme3 = "#4d4d4d"
             menu_icon = ImageTk.PhotoImage(use_image("menu.png",(20,20)))
-        buttons = [vbspbutton,inputbutton,autobutton,debugbutton,buttone]
+        buttons = [vbspbutton,inputbutton,autobutton,debugbutton,buttone,rmbutton,disablebutton]
         for button in buttons:
             button.configure(bg=theme3,fg=theme1)
         name_box.configure(bg=theme2,fg=theme1)
@@ -691,19 +805,23 @@ def intui():
             # Create the main window
             iopopup = tk.Toplevel()
             iopopup.title("Input / Output Editor")
-            iopopup.geometry("600x256")
+            iopopup.geometry("384x256")
             iopopup.config(bg=theme2)
             iopopup.wm_iconbitmap(os.path.join(path, "imgs/", "bpe.ico"))
 
+            entity_dict = entitydict
+            entity_dict["----"] = ""
+            entity_dict["Remove"] = "remove"
+
             # Create the dropdown widget for selecting an entity
             entityselected_option = tk.StringVar(iopopup)
-            entityselected_option.set(next(iter(entitydict.keys())))
-            entitydropdown = tk.OptionMenu(iopopup, entityselected_option, *entitydict.keys())
+            entityselected_option.set(next(iter(entity_dict.keys())))
+            entitydropdown = tk.OptionMenu(iopopup, entityselected_option, *entity_dict.keys())
             entitydropdown.config(width=8, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
             entitydropdown.place(x=60, y=32)
 
             # Create the dropdown widget for selecting a fire option
-            fires = ["AddOutput", "Alpha", "AlternativeSorting", "BecomeRagdoll", "CallScriptFunction", "CancelPress", "ClearParent", "Color", "DisableDraw", "DisableDrawInFastReflection", "DisableReceivingFlashlight", "DisableShadow", "EnableDraw", "EnableDrawInFastReflection", "EnableReceivingFlashlight", "EnableShadow", "fademaxdist", "fademindist", "FireUser1", "FireUser2", "FireUser3", "FireUser4", "ForceSpawn", "Ignite", "IgniteHitboxFireScale", "IgniteLifetime", "IgniteNumHitboxFires", "Kill", "KillHierarchy", "Lock", "Press", "RunScriptCode", "RunScriptFile", "SetBodyGroup", "SetDamageFilter", "SetLightingOrigin", "SetLightingOriginHack", "SetLocalAngles", "SetLocalOrigin", "SetParent", "SetParentAttachment", "SetParentAttachmentMaintainOffset", "SetTextureIndex", "StartForward", "StartBackward", "Skin", "UnLock", "Use"]
+            fires = ast.literal_eval(assetmanager.getdata("data/input"))
             fireselected_option = tk.StringVar(iopopup)
             fireselected_option.set(fires[0])
             firedropdown = tk.OptionMenu(iopopup, fireselected_option, *fires)
@@ -744,7 +862,7 @@ def intui():
             delaytxt.config(bg=theme2, fg=theme1)
 
             # Load the inputinfo image
-            inputinfoimg = ImageTk.PhotoImage(use_image("inputinfo.png", (244, 20)))
+            inputinfoimg = ImageTk.PhotoImage(themefyimg(use_image("inputinfo.png", (244, 20)),dbtnmappings,lbtnmappings))
 
             # Create the inputinfo image label
             inputinfopng = tk.Label(iopopup, image=inputinfoimg, width=244, height=20, bd=0)
@@ -753,34 +871,69 @@ def intui():
             # Define the confirmadd function
             def confirmadd():
                 # Compile input
-                newinput = f"{entityselected_option.get()},{fireselected_option.get()},{inputtxt.get('1.0', tk.END).strip()},{delaytxt.get('1.0', tk.END).strip()},-1"
+                newdinput = f"{deentityselected_option.get()},{defireselected_option.get()},{deinputtxt.get('1.0', tk.END).strip()},{0 if not deinputtxt.get('1.0', tk.END).strip() else deinputtxt.get('1.0', tk.END)},-1"
+                newainput = f"{entityselected_option.get()},{fireselected_option.get()},{inputtxt.get('1.0', tk.END).strip()},{0 if not deinputtxt.get('1.0', tk.END).strip() else deinputtxt.get('1.0', tk.END)},-1"
                 yesno = messagebox.askyesno("Info", "Are you sure you want to replace the current input with the new input?")
 
                 if yesno:
                     with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt")) as file:
                         content = file.read()
-                        vtextdict = assetmanager.vtext_to_json(''.join(assetmanager.find_blocks(content, '"Inputs"', pattern=r'({key}\s*\{{(?:.*?\n)*?\s*\}})')))
-                    with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
-                        file.write(content.replace(vtextdict['"Inputs"']['Enable_cmd'], newinput))
-                    messagebox.showinfo("Info", "Changed inputs!")
+                        inputblocks = assetmanager.find_blocks(content.replace("\t","").replace(" ",""), '"Inputs"',r'{key}\s*{{[^}}]*}}\s*}}\s')
+
+                        if inputblocks:
+                            inputblock = inputblocks[0]
+                        else:
+                            inputblock = '"Inputs"\n{\n\n}'
+                        if re.search(r'"BEE2"\s*{\s*}', inputblock):
+                            # Handle case when the input block is present but empty
+                            # You can add your logic or display an error message
+                            print("Input block is present but empty")
+                        else:
+                            # Edit inputs
+                            aoldinput = re.findall(r'"Enable_cmd""((?:[^\\"]|\\\\|\\")*)"', inputblock)
+                            doldinput = re.findall(r'"Disable_cmd""((?:[^\\"]|\\\\|\\")*)"', inputblock)
+                            if newainput == ",,,,-1":
+                                ainput = aoldinput
+                            elif entityselected_option.get() == "Remove":
+                                ainput = ""
+                            else:
+                                ainput = newainput
+                            if newdinput == ",,,,-1":
+                                dinput = doldinput
+                            elif deentityselected_option.get() == "Remove":
+                                ainput = ""
+                            else:
+                                dinput = newdinput
+                            bee2str = f'"Inputs"\n{{\n"BEE2"\n{{\n"Type" "AND"\n"Enable_cmd" "{ainput}"\n"Disable_cmd" "{dinput}"\n}}\n}}\n'
+                            print(inputblock)
+                            print(bee2str)
+                            with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
+                                file.write(assetmanager.format_string(content.replace(" ","").replace("\t","").replace(inputblock,bee2str)))
 
             # Create the input activate button
-            inputactivatebutton = tk.Button(iopopup, text="Add", command=confirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme1)
-            inputactivatebutton.place(x=320, y=35)
+            inputactivatebutton = tk.Button(iopopup, text="Add", command=confirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme1,width=13)
+            inputactivatebutton.place(x=198, y=112)
+
+            def switchi_o():
+                hideinput()
+                showoutput()
+
+            swapperbtn = tk.Button(iopopup, text="Output Editor", command=switchi_o, font=("Arial", 8), bd=0, bg=theme3, fg=theme1,width=13)
+            swapperbtn.place(x=85, y=112)
             #declare the input stuff.
 
             #add the deactivate part
             # Create the dropdown widget for selecting an entity
             deentityselected_option = tk.StringVar(iopopup)
-            deentityselected_option.set(next(iter(entitydict.keys())))
-            deentitydropdown = tk.OptionMenu(iopopup, entityselected_option, *entitydict.keys())
+            deentityselected_option.set(next(iter(entity_dict.keys())))
+            deentitydropdown = tk.OptionMenu(iopopup, deentityselected_option, *entity_dict.keys())
             deentitydropdown.config(width=8, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
             deentitydropdown.place(x=60, y=192)
 
             # Create the dropdown widget for selecting a fire option
             defireselected_option = tk.StringVar(iopopup)
             defireselected_option.set(fires[0])
-            defiredropdown = tk.OptionMenu(iopopup, fireselected_option, *fires)
+            defiredropdown = tk.OptionMenu(iopopup, defireselected_option, *fires)
             defiredropdown.config(width=3, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
             defiredropdown.place(x=120, y=192)
 
@@ -811,26 +964,123 @@ def intui():
             deinputinfopng = tk.Label(iopopup, image=inputinfoimg, width=244, height=20, bd=0)
             deinputinfopng.place(x=60, y=224)
 
-            # Define the confirmadd function
-            def deconfirmadd():
-                # Compile input
-                newinput = f"{deentityselected_option.get()},{defireselected_option.get()},{deinputtxt.get('1.0', tk.END).strip()},{dedelaytxt.get('1.0', tk.END).strip()},-1"
-                yesno = messagebox.askyesno("Info", "Are you sure you want to replace the current input with the new input?")
 
+            inputdeclaration = [inputactivatebutton, inputinfopng, inputtxt, delaytxt, firedropdown, entitydropdown, deinputinfopng, deinputtxt, dedelaytxt, defiredropdown, deentitydropdown,swapperbtn]
+            inputinfo = []
+            def hideinput():
+                for button in inputdeclaration:
+                    inputinfo.append(button.place_info())
+                    button.place_forget()
+
+            def showinput():
+                hideinput()
+                for index, button in enumerate(inputdeclaration):
+                    button.place(inputinfo[index])
+
+            #output
+            outputentityselected_option = tk.StringVar(iopopup)
+            outputentityselected_option.set(next(iter(entity_dict.keys())))
+            outputentitydropdown = tk.OptionMenu(iopopup, entityselected_option, *entity_dict.keys())
+            outputentitydropdown.config(width=8, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
+            outputentitydropdown.place(x=85, y=32)
+
+            outfires = ast.literal_eval(assetmanager.getdata("data/output"))
+
+            outputfireselected_option = tk.StringVar(iopopup)
+            outputfireselected_option.set(outfires[0])
+            outputfiredropdown = tk.OptionMenu(iopopup, outputfireselected_option, *outfires)
+            outputfiredropdown.config(width=8, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
+            outputfiredropdown.place(x=198, y=32)
+
+
+
+            doutputentityselected_option = tk.StringVar(iopopup)
+            doutputentityselected_option.set(next(iter(entity_dict.keys())))
+            doutputentitydropdown = tk.OptionMenu(iopopup, doutputentityselected_option, *entity_dict.keys())
+            doutputentitydropdown.config(width=8, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
+            doutputentitydropdown.place(x=85, y=192)
+
+            doutfires = ast.literal_eval(assetmanager.getdata("data/output"))
+
+            doutputfireselected_option = tk.StringVar(iopopup)
+            doutputfireselected_option.set(outfires[0])
+            doutputfiredropdown = tk.OptionMenu(iopopup, doutputfireselected_option, *outfires)
+            doutputfiredropdown.config(width=8, bd=0, bg=theme2, fg=theme1, highlightthickness=1, highlightcolor=theme1, highlightbackground=theme1)
+            doutputfiredropdown.place(x=198, y=192)
+
+            #Info
+            outputinfoimg = ImageTk.PhotoImage(themefyimg(use_image("outputinfo.png", (200, 21)),dbtnmappings,lbtnmappings))
+
+            outputinfopng1 = tk.Label(iopopup, image=outputinfoimg, width=200, height=21, bd=0)
+            outputinfopng1.place(x=85, y=64)
+
+            outputinfopng2 = tk.Label(iopopup, image=outputinfoimg, width=200, height=21, bd=0)
+            outputinfopng2.place(x=85, y=224)
+
+            def outconfirmadd():
+                # Compile input
+                newainput = f"instance:{outputentityselected_option.get()};{outputfireselected_option.get()}"
+                newdinput = f"instance:{doutputentityselected_option.get()};{doutputfireselected_option.get()}"
+                yesno = messagebox.askyesno("Info", "Are you sure you want to replace the current output with the new output?")
                 if yesno:
                     with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt")) as file:
                         content = file.read()
-                        vtextdict = assetmanager.vtext_to_json(''.join(assetmanager.find_blocks(content, '"Inputs"', pattern=r'({key}\s*\{{(?:.*?\n)*?\s*\}})')))
-                    with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
-                        file.write(content.replace(vtextdict['"Inputs"']['Disable_cmd'], newinput))
-                    messagebox.showinfo("Info", "Changed inputs!")
+                        inputblocks = assetmanager.find_blocks(content.replace("\t","").replace(" ",""), '"Outputs"',r'{key}\s*{{[^}}]*}}\s*}}\s')
 
-            # Create the input activate button
-            inputactivatebutton = tk.Button(iopopup, text="Add", command=deconfirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme1)
-            inputactivatebutton.place(x=320, y=195)
+                        if inputblocks:
+                            inputblock = inputblocks[0]
+                        else:
+                            inputblock = '"Outputs"\n{\n\n}'
+                        if re.search(r'"BEE2"\s*{\s*}', inputblock):
+                            # Handle case when the input block is present but empty
+                            # You can add your logic or display an error message
+                            print("Input block is present but empty")
+                        else:
+                            # Edit inputs
+                            aoldinput = re.findall(r'"out_activate""((?:[^\\"]|\\\\|\\")*)"', inputblock)
+                            doldinput = re.findall(r'"out_deactivate""((?:[^\\"]|\\\\|\\")*)"', inputblock)
+                            if newainput == "instance:;":
+                                ainput = aoldinput
+                            elif outputentityselected_option.get() == "Remove":
+                                ainput = ""
+                            else:
+                                ainput = newainput
+                            if newdinput == "instance:;":
+                                dinput = doldinput
+                            elif doutputentityselected_option.get() == "Remove":
+                                ainput = ""
+                            else:
+                                dinput = newdinput
+                            bee2str = f'"Outputs"\n{{\n"BEE2"\n{{\n"Type" "AND"\n"out_activate" "{ainput}"\n"out_deactivate" "{dinput}"\n}}\n}}\n'
+                            print(inputblock)
+                            print(bee2str)
+                            with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
+                                file.write(assetmanager.format_string(content.replace(" ","").replace("\t","").replace(inputblock,bee2str)))
 
+            outputactivatebutton = tk.Button(iopopup, text="Add", command=outconfirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme1,width=13)
+            outputactivatebutton.place(x=198, y=112)
 
-            inputdeclaration = [inputactivatebutton, inputinfopng, inputtxt, firedropdown, entitydropdown]
+            def switcho_i():
+                hideoutput()
+                showinput()
+
+            swapperbtn = tk.Button(iopopup, text="Input Editor", command=switcho_i, font=("Arial", 8), bd=0, bg=theme3, fg=theme1,width=13)
+            swapperbtn.place(x=85, y=112)
+
+            outputdeclaration = [outputentitydropdown,outputfiredropdown,outputactivatebutton,swapperbtn,doutputentitydropdown,doutputfiredropdown,outputinfopng1,outputinfopng2]
+            outputinfo = []
+
+            def hideoutput():
+                for button in outputdeclaration:
+                    outputinfo.append(button.place_info())
+                    button.place_forget()
+
+            def showoutput():
+                hideoutput()
+                for index, button in enumerate(outputdeclaration):
+                    button.place(outputinfo[index])
+
+            hideoutput()
 
             # Start the main event loop
             iopopup.mainloop()
