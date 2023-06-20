@@ -113,6 +113,8 @@ def loadlast():
         if choice == True:
             root.destroy()
             BPE.intui()
+    except FileNotFoundError:
+        messagebox.showerror("Error", "We could not find your most recent file.")
     except Exception as error:
         pyperclip.copy(traceback.format_exc())
         messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
