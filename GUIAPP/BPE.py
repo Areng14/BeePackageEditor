@@ -172,27 +172,29 @@ def intui():
     global theme1
     global theme2
     global theme3
+    global theme4
 
     global dtheme1
     global ltheme1
     theme1 = "#878787"
     theme2 = "#232323"
     theme3 = "#4d4d4d"
+    theme4 = "#878787"
 
     ltheme1 = "#474747"
     ltheme2 = "#dedede"
     ltheme3 = "#7a7a7a"
+    ltheme4 = "#FFFFFF"
 
     dtheme1 = "#878787"
     dtheme2 = "#232323"
     dtheme3 = "#4d4d4d"
+    dtheme4 = "#878787"
 
     items = []
     editor = []
     id = []
     global itemsdict
-
-    global color_mappings
 
 
     dbtnmappings = [
@@ -692,21 +694,24 @@ def intui():
         global buttone
         global theme2
         global theme3
+        global theme4
         if theme1 == "#878787":
             log.loginfo("Changing to light mode")
-            theme1 = "#474747"
-            theme2 = "#dedede"
-            theme3 = "#7a7a7a"
+            theme1 = ltheme1
+            theme2 = ltheme2
+            theme3 = ltheme3
+            theme4 = ltheme4
             menu_icon = ImageTk.PhotoImage(use_image("menul.png",(20,20)))
         else:
             log.loginfo("Changing to dark mode")
-            theme1 = "#878787"
-            theme2 = "#232323"
-            theme3 = "#4d4d4d"
+            theme1 = dtheme1
+            theme2 = dtheme2
+            theme3 = dtheme3
+            theme4 = dtheme4
             menu_icon = ImageTk.PhotoImage(use_image("menu.png",(20,20)))
         buttons = [vbspbutton,inputbutton,autobutton,debugbutton,buttone,rmbutton,disablebutton]
         for button in buttons:
-            button.configure(bg=theme3,fg=theme1)
+            button.configure(bg=theme3,fg=theme4)
         name_box.configure(bg=theme2,fg=theme1)
         listbox.configure(bg=theme2,fg=theme1)
         menu.configure(bg=theme2,fg=theme1)
@@ -741,7 +746,7 @@ def intui():
 
 
     #Buttons
-    autobutton = tk.Button(root, text="Autopacker",command=autopack,font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1)
+    autobutton = tk.Button(root, text="Autopacker",command=autopack,font=("Arial", 11) ,bd=0,bg=theme3,fg=theme4)
     autobutton.place(width=128, height=32,x=610, y=200)
 
     #Leak checker
@@ -1088,7 +1093,7 @@ def intui():
             messagebox.showerror("Error",f"{itemsdict[itemkey][1]}'s instance does not have a entity!\nThis may be because the entity does not have a name or this item has no entities")
         log.loginfo("Completed.")
 
-    inputbutton = tk.Button(root, text="Connection Editor",command=ioedit,font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1)
+    inputbutton = tk.Button(root, text="Connection Editor",command=ioedit,font=("Arial", 11) ,bd=0,bg=theme3,fg=theme4)
     inputbutton.place(width=128, height=32,x=610, y=250)
 
     #vbsp_editor
@@ -1290,7 +1295,7 @@ def intui():
 
 
 
-    vbspbutton = tk.Button(root, text="vbsp_editor",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=vbsp_editor)
+    vbspbutton = tk.Button(root, text="vbsp_editor",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme4,command=vbsp_editor)
     vbspbutton.place(width=128, height=32,x=410, y=200)
 
 
@@ -1412,7 +1417,7 @@ def intui():
             log.logerror(f"Removed {itemsdict[itemkey][2]}")
 
 
-    rmbutton = tk.Button(root, text="Remove Item",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=rmitem)
+    rmbutton = tk.Button(root, text="Remove Item",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme4,command=rmitem)
     rmbutton.place(width=128, height=32,x=410, y=300)
 
     def disitem():
@@ -1456,7 +1461,7 @@ def intui():
                     updatainfo()
                     messagebox.showinfo("Info",f"Enabled {itemsdict[itemkey][1]}")
 
-    disablebutton = tk.Button(root, text="Toggle Item",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=disitem)
+    disablebutton = tk.Button(root, text="Toggle Item",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme4,command=disitem)
     disablebutton.place(width=128, height=32,x=610, y=300)
 
     
@@ -1484,7 +1489,7 @@ def intui():
         log.loginfo(packagemanager.packagesdir)
         log.loginfo(os.path.basename(filepath))
 
-    buttone = tk.Button(root, text="                    Export                    ",font=("Arial", 11) ,bd=0 ,command=export,bg=theme3,fg=theme1)
+    buttone = tk.Button(root, text="                    Export                    ",font=("Arial", 11) ,bd=0 ,command=export,bg=theme3,fg=theme4)
     buttone.place(x=450, y=400)
 
     #Handle closing

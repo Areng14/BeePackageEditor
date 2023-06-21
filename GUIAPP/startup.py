@@ -12,7 +12,7 @@ import shutil
 from tkinter import filedialog
 import packagemanager
 
-version = "2.0_DEV"
+version = "2.0"
 
 if "_DEV" not in version.upper():
     if requests.get("https://versioncontrol.orange-gamergam.repl.co/api/bpe").json() <= float(version):
@@ -119,6 +119,12 @@ def loadlast():
         pyperclip.copy(traceback.format_exc())
         messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
 
+def opendis():
+    webopen("https://discord.gg/gdKhV2jGyh")
+
+def opengit():
+    webopen("https://github.com/Areng14/BeePackageEditor")
+
 root.wm_iconbitmap(os.path.join(path,"imgs/","bpe.ico"))
 
 path_label = tk.Label(root, text="Enter path to file:", bg="#232323",fg="#878787")
@@ -137,7 +143,14 @@ submit_button = tk.Button(root, text="    Load Recent    ", command=loadlast, bg
 submit_button.place(x=78,y=65)
 
 check_var = tk.IntVar()
-check_button = tk.Checkbutton(root, text="Patch VTFs", variable=check_var, bg="#232323",fg="#878787",activeforeground="#232323",activebackground="#878787")
+check_button = tk.Checkbutton(root, text="Patch VTFs", variable=check_var, bg="#232323",fg="#878787",activeforeground="#878787",activebackground="#232323")
 check_button.place(x=86,y=90)
+
+desc_button = tk.Button(root, text="Discord Server", command=opendis, bg="#232323",fg="#878787",activeforeground="#232323",activebackground="#878787",width=13)
+desc_button.place(x=80,y=160)
+
+desc_button = tk.Button(root, text="Github", command=opengit, bg="#232323",fg="#878787",activeforeground="#232323",activebackground="#878787",width=13)
+desc_button.place(x=80,y=192)
+
 
 root.mainloop()
