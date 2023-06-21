@@ -916,14 +916,14 @@ def intui():
                                 file.write(assetmanager.format_string(content.replace(" ","").replace("\t","").replace(inputblock,bee2str)))
 
             # Create the input activate button
-            inputactivatebutton = tk.Button(iopopup, text="Add", command=confirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme1,width=13)
+            inputactivatebutton = tk.Button(iopopup, text="Add", command=confirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme4,width=13)
             inputactivatebutton.place(x=198, y=112)
 
             def switchi_o():
                 hideinput()
                 showoutput()
 
-            swapperbtn = tk.Button(iopopup, text="Output Editor", command=switchi_o, font=("Arial", 8), bd=0, bg=theme3, fg=theme1,width=13)
+            swapperbtn = tk.Button(iopopup, text="Output Editor", command=switchi_o, font=("Arial", 8), bd=0, bg=theme3, fg=theme4,width=13)
             swapperbtn.place(x=85, y=112)
             #declare the input stuff.
 
@@ -1062,14 +1062,14 @@ def intui():
                             with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
                                 file.write(assetmanager.format_string(content.replace(" ","").replace("\t","").replace(inputblock,bee2str)))
 
-            outputactivatebutton = tk.Button(iopopup, text="Add", command=outconfirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme1,width=13)
+            outputactivatebutton = tk.Button(iopopup, text="Add", command=outconfirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme4,width=13)
             outputactivatebutton.place(x=198, y=112)
 
             def switcho_i():
                 hideoutput()
                 showinput()
 
-            swapperbtn = tk.Button(iopopup, text="Input Editor", command=switcho_i, font=("Arial", 8), bd=0, bg=theme3, fg=theme1,width=13)
+            swapperbtn = tk.Button(iopopup, text="Input Editor", command=switcho_i, font=("Arial", 8), bd=0, bg=theme3, fg=theme4,width=13)
             swapperbtn.place(x=85, y=112)
 
             outputdeclaration = [outputentitydropdown,outputfiredropdown,outputactivatebutton,swapperbtn,doutputentitydropdown,doutputfiredropdown,outputinfopng1,outputinfopng2]
@@ -1360,7 +1360,7 @@ def intui():
         else:
             messagebox.showinfo("Info",f"Debugger found no issues with {itemsdict[itemkey][1]}.")
 
-    debugbutton = tk.Button(root, text="debugger",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme1,command=debuger)
+    debugbutton = tk.Button(root, text="debugger",font=("Arial", 11) ,bd=0,bg=theme3,fg=theme4,command=debuger)
     debugbutton.place(width=128, height=32,x=410, y=250)
 
     def rmitem():
