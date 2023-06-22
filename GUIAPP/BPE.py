@@ -810,6 +810,7 @@ def intui():
             # Create the main window
             iopopup = tk.Toplevel()
             iopopup.title("Input / Output Editor")
+            iopopup.resizable(False, False)
             iopopup.geometry("384x256")
             iopopup.config(bg=theme2)
             iopopup.wm_iconbitmap(os.path.join(path, "imgs/", "bpe.ico"))
@@ -876,14 +877,14 @@ def intui():
             # Define the confirmadd function
             def confirmadd():
                 # Compile input
-                newdinput = f"{deentityselected_option.get()},{defireselected_option.get()},{deinputtxt.get('1.0', tk.END).strip()},{0 if not deinputtxt.get('1.0', tk.END).strip() else deinputtxt.get('1.0', tk.END)},-1"
-                newainput = f"{entityselected_option.get()},{fireselected_option.get()},{inputtxt.get('1.0', tk.END).strip()},{0 if not deinputtxt.get('1.0', tk.END).strip() else deinputtxt.get('1.0', tk.END)},-1"
+                newdinput = f"{deentityselected_option.get()},{defireselected_option.get()},{deinputtxt.get('1.0', tk.END).strip()},{0 if not dedelaytxt.get('1.0', tk.END).strip() else dedelaytxt.get('1.0', tk.END)},-1"
+                newainput = f"{entityselected_option.get()},{fireselected_option.get()},{inputtxt.get('1.0', tk.END).strip()},{0 if not delaytxt.get('1.0', tk.END).strip() else delaytxt.get('1.0', tk.END)},-1"
                 yesno = messagebox.askyesno("Info", "Are you sure you want to replace the current input with the new input?")
 
                 if yesno:
                     with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt")) as file:
                         content = file.read()
-                        inputblocks = assetmanager.find_blocks(content.replace("\t","").replace(" ",""), '"Inputs"',r'{key}\s*{{[^}}]*}}\s*}}\s')
+                        inputblocks = assetmanager.find_blocks(content.replace("\t",""), '"Inputs"',r'{key}\s*{{[^}}]*}}\s*}}\s')
 
                         if inputblocks:
                             inputblock = inputblocks[0]
@@ -913,7 +914,7 @@ def intui():
                             print(inputblock)
                             print(bee2str)
                             with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
-                                file.write(assetmanager.format_string(content.replace(" ","").replace("\t","").replace(inputblock,bee2str)))
+                                file.write(assetmanager.format_string(content.replace("\t","").replace(inputblock,bee2str)))
 
             # Create the input activate button
             inputactivatebutton = tk.Button(iopopup, text="Add", command=confirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme4,width=13)
@@ -1030,7 +1031,7 @@ def intui():
                 if yesno:
                     with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt")) as file:
                         content = file.read()
-                        inputblocks = assetmanager.find_blocks(content.replace("\t","").replace(" ",""), '"Outputs"',r'{key}\s*{{[^}}]*}}\s*}}\s')
+                        inputblocks = assetmanager.find_blocks(content.replace("\t",""), '"Outputs"',r'{key}\s*{{[^}}]*}}\s*}}\s')
 
                         if inputblocks:
                             inputblock = inputblocks[0]
@@ -1060,7 +1061,7 @@ def intui():
                             print(inputblock)
                             print(bee2str)
                             with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
-                                file.write(assetmanager.format_string(content.replace(" ","").replace("\t","").replace(inputblock,bee2str)))
+                                file.write(assetmanager.format_string(content.replace("\t","").replace(inputblock,bee2str)))
 
             outputactivatebutton = tk.Button(iopopup, text="Add", command=outconfirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme4,width=13)
             outputactivatebutton.place(x=198, y=112)
@@ -1184,15 +1185,15 @@ def intui():
                 writethis = []
                 for item in addthis:
                     writethis.append(item)
-                bwritethis = '"ConnectionCount"\n{\n"DefaultValue"	"0"\n"Index"	"1"\n}'
+                bwritethis = '"ConnectionCount"\n{\n"DefaultValue" "0"\n"Index" "1"\n}'
                 bwritethis += "\n" + "\n".join(writethis)
                 writethis = bwritethis + "\n"
 
                 with open(os.path.join(packagemanager.packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"),"r") as file:
                     content = file.read()
-                properties = assetmanager.find_blocks(content.replace("\t", "").replace(" ", ""), '"Properties"', r'{key}\s*{{\s*((?:[^{{}}]|{{[^{{}}]*}})*)\s*}}')
+                properties = assetmanager.find_blocks(content.replace("\t", ""), '"Properties"', r'{key}\s*{{\s*((?:[^{{}}]|{{[^{{}}]*}})*)\s*}}')
                 with open(os.path.join(packagemanager.packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"),"w") as file:
-                    file.write(assetmanager.format_string(content.replace("\t","").replace(" ","").replace(properties[0].replace(" ",""),writethis.replace(" ",""))))
+                    file.write(assetmanager.format_string(content.replace("\t","").replace(properties[0],writethis)))
 
                 messagebox.showinfo("Info", "File Saved Successfully")
 
@@ -1223,7 +1224,7 @@ def intui():
                 else:
                     messagebox.showerror("Error",f"{os.path.splitext(file)[0]} is not a .vmf file!")
             
-            add_text(text,f'"Changeinstance" "instances/bee2/beepkg/{itemsdict[itemkey][0]}/{os.path.basename(file)}"')
+            add_text(text,f'"Changeinstance" "instances/bee2/beepkg/{itemsdict[itemkey][2]}/{os.path.basename(file)}"')
 
         #Type maker
         def cubetypeadd():
@@ -1468,20 +1469,23 @@ def intui():
 
     def export():
         log.loginfo("Exporting")
+        #Get new filepath
+        with open(os.path.join(path,"config.bpe"),"r") as file:
+            filepath = file.read()
         shutil.make_archive(os.path.basename(filepath),"zip",packagemanager.packagesdir)
         try:
             os.makedirs(os.path.join(path,"output"))
         except FileExistsError:
             pass
         counter = 1
-        if not os.path.isfile(os.path.join(path,"output",f"{os.path.basename(filepath)}.bee_pack")):
-            os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.basename(filepath)}"))
-            messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.basename(filepath)}.bee_pack")}')
+        if not os.path.isfile(os.path.join(path,"output",os.path.basename(filepath))):
+            os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",os.path.basename(filepath)))
+            messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",os.path.basename(filepath))}')
         else:
             while True:
-                if not os.path.isfile(os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack")):
-                    os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter})"))
-                    messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.basename(filepath)} ({counter}).bee_pack")}')
+                if not os.path.isfile(os.path.join(path,"output",f"{os.path.splitext(os.path.basename(filepath))[0]} ({counter}){os.path.splitext(os.path.basename(filepath))[1]}")):
+                    os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.splitext(os.path.basename(filepath))[0]} ({counter}){os.path.splitext(os.path.basename(filepath))[1]}"))
+                    messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.splitext(os.path.basename(filepath))[0]} ({counter}){os.path.splitext(os.path.basename(filepath))[1]}")}')
                     break
                 else:
                     counter += 1
