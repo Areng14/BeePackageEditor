@@ -12,7 +12,7 @@ import shutil
 from tkinter import filedialog
 import packagemanager
 
-version = "2.1"
+version = "2.1_DEV"
 
 if "_DEV" not in version.upper():
     if requests.get("https://versioncontrol.orange-gamergam.repl.co/api/bpe").json() <= float(version):
