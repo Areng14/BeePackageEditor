@@ -874,7 +874,10 @@ def intui():
             delaytxt.config(bg=theme2, fg=theme1)
 
             # Load the inputinfo image
-            inputinfoimg = ImageTk.PhotoImage(themefyimg(use_image("inputinfo.png", (244, 20)),dbtnmappings,lbtnmappings))
+            if theme1 == dtheme1:
+                inputinfoimg = ImageTk.PhotoImage(use_image("inputinfo.png", (244, 20)))
+            else:
+                inputinfoimg = ImageTk.PhotoImage(use_image("inputinfol.png", (244, 20)))
 
             # Create the inputinfo image label
             inputinfopng = tk.Label(iopopup, image=inputinfoimg, width=244, height=20, bd=0)
@@ -1021,7 +1024,10 @@ def intui():
             doutputfiredropdown.place(x=198, y=192)
 
             #Info
-            outputinfoimg = ImageTk.PhotoImage(themefyimg(use_image("outputinfo.png", (200, 21)),dbtnmappings,lbtnmappings))
+            if theme1 == dtheme1:
+                outputinfoimg = ImageTk.PhotoImage(use_image("outputinfo.png", (200, 21)))
+            else:
+                outputinfoimg = ImageTk.PhotoImage(use_image("outputinfol.png", (200, 21)))
 
             outputinfopng1 = tk.Label(iopopup, image=outputinfoimg, width=200, height=21, bd=0)
             outputinfopng1.place(x=85, y=64)
