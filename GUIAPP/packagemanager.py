@@ -15,7 +15,7 @@ else:
     path = sys.executable.replace(os.path.basename(sys.executable),"")
 
 #Makes directories
-dirs = ["packages","logs","config"]
+dirs = ["packages","logs"]
 for dirs in dirs:
     try:
         os.makedirs(os.path.join(path,dirs))
@@ -92,19 +92,8 @@ def patch_vtfs(item_dict):
         
         pathtoimg = pathtoimg.replace("\\","/")
 
-        #Patching image
-
-        first_image = Image.new("RGB", (128, 128), (255, 255, 255))
-
-        second_image = Image.open(pathtoimg)
-
-        second_image = second_image.resize((128, 128), Image.ANTIALIAS)
-
-        first_image.paste(second_image, (0, 0))
-
-        first_image.save(pathtoimg)
-
         print(f'vtex2 convert -f dxt5 "{pathtoimg}"')
+        os.chdir(path)
         os.system(f'vtex2 convert --version 7.2 -f dxt5 "{pathtoimg}"')
         os.remove(vtfpath)
         os.rename(pathtoimg.replace(os.path.basename(pathtoimg),os.path.splitext(os.path.basename(pathtoimg))[0] + ".vtf"),vtfpath)
@@ -113,14 +102,13 @@ def patch_vtfs(item_dict):
 def readfile(file):
     #Checks if file exists before extracting. If so remove contents
     items = {}
+    beepkg = 0
     #Extracting the zip
-    try:
-        with zipfile.ZipFile(file, 'r') as zip_ref:
+    with zipfile.ZipFile(file, 'r') as zip_ref:
+        try:
             zip_ref.extractall(packagesdir)
-    except PermissionError:
-        raise "NoPerms"
-    except FileNotFoundError:
-        raise "NonExistant"
+        except (PermissionError, FileNotFoundError) as e:
+            raise e
     #Begin to read info.txt and return information collected into a dict. Format: {INT: ID, Name, iteminfo path}
     with open(os.path.join(packagesdir,"info.txt")) as infotxt:
         linelist = infotxt.read().split("\n")
@@ -156,7 +144,28 @@ def readfile(file):
                         if '"NAME"' in removeformat(editlinelist[x]).upper():
                             itemname = editlinelist[x].replace('"Name"',"").replace("\t","").replace('"',"").replace("'","").replace("  ","")
                             break
-                items[counter2] = [itemid,itemname,itemconfig]
+                disabled = False
+                items[counter2] = [itemid,itemname,itemconfig,disabled]
+                counter2 += 1
+            elif removeformat(line.upper()) == '"DIS_ITEM"':
+                itemid,itemconfig,itemname = "","",""
+                #We have detected an item now we will read the thing
+                for x in range(counter,len(linelist)):
+                    if '"ID"' in removeformat(linelist[x].upper()):
+                        itemid = linelist[x].replace(" ","").replace('"ID"',"").replace("\t","").replace('"',"").replace("'","")
+                    if '"BEE2_CLEAN"' in removeformat(linelist[x].upper()):
+                        itemconfig = linelist[x].replace(" ","").replace('"BEE2_CLEAN"',"").replace("\t","").replace('"',"").replace("'","")
+                    if itemid and itemconfig:
+                        break
+                #Get name of item
+                with open(os.path.join(packagesdir,"items",removeformat(itemconfig),"editoritems.txt"),"r") as editorfile:
+                    editlinelist = editorfile.read().split("\n")
+                    for x in range(len(editlinelist)):
+                        if '"NAME"' in removeformat(editlinelist[x]).upper():
+                            itemname = editlinelist[x].replace('"Name"',"").replace("\t","").replace('"',"").replace("'","").replace("  ","")
+                            break
+                disabled = True
+                items[counter2] = [itemid,itemname,itemconfig,disabled]
                 counter2 += 1
             counter += 1
         #Goes over info.txt and finds inportant info
