@@ -12,7 +12,7 @@ import shutil
 from tkinter import filedialog
 import packagemanager
 
-version = "2.1_DEV"
+version = "2.1"
 
 if "_DEV" not in version.upper():
     if requests.get("https://versioncontrol.orange-gamergam.repl.co/api/bpe").json() <= float(version):
@@ -134,7 +134,7 @@ path_entry = tk.Entry(root, bg="#474747",fg="#878787")
 path_entry.pack()
 
 browse_button = tk.Button(root, text="Browse", command=browse_file, bg="#232323",fg="#878787",activeforeground="#232323",activebackground="#878787")
-browse_button.place(x=128,y=40)
+browse_button.place(x=129,y=40)
 
 submit_button = tk.Button(root, text="Submit", command=submit_path, bg="#232323",fg="#878787",activeforeground="#232323",activebackground="#878787")
 submit_button.place(x=78,y=40)

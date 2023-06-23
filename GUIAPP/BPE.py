@@ -200,13 +200,16 @@ def intui():
     dbtnmappings = [
         (dtheme1, dtheme3),
         (dtheme2, dtheme2),
-        (dtheme3, dtheme1)
+        (dtheme3, dtheme1),
+        (dtheme4, dtheme4
+)
     ]
 
     lbtnmappings = [
-        (dtheme1, ltheme3),
+        (dtheme1, ltheme1),
         (dtheme2, ltheme2),
-        (dtheme3, ltheme1),
+        (dtheme3, ltheme3),
+        (dtheme4, ltheme4)
     ]
 
     def themefyimg(image,dmapping,lmapping):
@@ -364,11 +367,13 @@ def intui():
 
                 # Use regular expressions to extract the description text
                 matches = re.findall(r'"" "(.*?)"', blocks)
-                max_lines = 3
-                limited_matches = matches[:max_lines]
-                readable_string = '\n'.join(limited_matches)
-                if len(matches) > max_lines:
-                    readable_string += '\n...'
+                limit = 60
+                limited_matches = matches[:3]
+                for line in limited_matches:
+                    print(line)
+                readable_string = ' '.join(limited_matches)
+                if len(readable_string) > limit:
+                    readable_string = readable_string[:limit - 3] + "..."
                 return readable_string
 
             else:
@@ -385,8 +390,9 @@ def intui():
 
     desc_variable = tk.StringVar()
     desc_variable.set(getdescription())
-    desc_box = tk.Label(root, textvariable=desc_variable,bg=theme2,fg=theme1, anchor="w",width=50,bd=0,font=("Arial", 8))
-    desc_box.place(x=410, y=100)
+    desc_box = tk.Label(root, textvariable=desc_variable,bg=theme2,fg=theme1, anchor="w",width=50,bd=0,font=("Arial", 8), wraplength=700)
+    desc_box.place(x=410, y=125)
+
     def showdesc(event):
         key = finditemkey()
         with open(os.path.join(packagemanager.packagesdir, "items", itemsdict[key][2], "properties.txt")) as file:
@@ -1477,21 +1483,30 @@ def intui():
             os.makedirs(os.path.join(path,"output"))
         except FileExistsError:
             pass
-        counter = 1
-        if not os.path.isfile(os.path.join(path,"output",os.path.basename(filepath))):
-            os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",os.path.basename(filepath)))
-            messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",os.path.basename(filepath))}')
+        if os.path.splitext(filepath)[1] != ".zip":
+            filetypes = (("Beemod Package", "*.bee_pack"), ("zip", "*.zip"), ("All files", "*.*"))
         else:
-            while True:
-                if not os.path.isfile(os.path.join(path,"output",f"{os.path.splitext(os.path.basename(filepath))[0]} ({counter}){os.path.splitext(os.path.basename(filepath))[1]}")):
-                    os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.splitext(os.path.basename(filepath))[0]} ({counter}){os.path.splitext(os.path.basename(filepath))[1]}"))
-                    messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.splitext(os.path.basename(filepath))[0]} ({counter}){os.path.splitext(os.path.basename(filepath))[1]}")}')
-                    break
-                else:
-                    counter += 1
-        log.loginfo("Exported!")
-        log.loginfo(packagemanager.packagesdir)
-        log.loginfo(os.path.basename(filepath))
+            filetypes = (("zip", "*.zip"), ("Beemod Package", "*.bee_pack"), ("All files", "*.*"))
+        savehere = filedialog.asksaveasfilename(filetypes=filetypes,initialfile=os.path.basename(filepath))
+        if not savehere:
+            counter = 1
+            if not os.path.isfile(os.path.join(path,"output",os.path.basename(filepath))):
+                os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",os.path.basename(filepath)))
+                messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",os.path.basename(filepath))}')
+            else:
+                while True:
+                    if not os.path.isfile(os.path.join(path,"output",f"{os.path.splitext(os.path.basename(filepath))[0]} ({counter}){os.path.splitext(os.path.basename(filepath))[1]}")):
+                        os.rename(f"{os.path.basename(filepath)}.zip",os.path.join(path,"output",f"{os.path.splitext(os.path.basename(filepath))[0]} ({counter}){os.path.splitext(os.path.basename(filepath))[1]}"))
+                        messagebox.showinfo("Exported!",f'Package name:{itemsdict["info"][3]} is done exporting!\nYou can find it at {os.path.join(path,"output",f"{os.path.splitext(os.path.basename(filepath))[0]} ({counter}){os.path.splitext(os.path.basename(filepath))[1]}")}')
+                        break
+                    else:
+                        counter += 1
+            log.loginfo("Exported!")
+            log.loginfo(packagemanager.packagesdir)
+            log.loginfo(os.path.basename(filepath))
+        else:
+            os.rename(f"{os.path.basename(filepath)}.zip",savehere)
+            log.loginfo("Exported!")
 
     buttone = tk.Button(root, text="                    Export                    ",font=("Arial", 11) ,bd=0 ,command=export,bg=theme3,fg=theme4)
     buttone.place(x=450, y=400)

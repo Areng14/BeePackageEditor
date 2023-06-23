@@ -15,7 +15,7 @@ else:
     path = sys.executable.replace(os.path.basename(sys.executable),"")
 
 #Makes directories
-dirs = ["packages","logs","config"]
+dirs = ["packages","logs"]
 for dirs in dirs:
     try:
         os.makedirs(os.path.join(path,dirs))
