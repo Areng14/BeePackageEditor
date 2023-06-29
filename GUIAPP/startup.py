@@ -12,7 +12,7 @@ import shutil
 from tkinter import filedialog
 import packagemanager
 
-version = "2.1"
+version = "2.2"
 
 if "_DEV" not in version.upper():
     if requests.get("https://versioncontrol.orange-gamergam.repl.co/api/bpe").json() <= float(version):
@@ -29,7 +29,7 @@ root.geometry("256x256+300+200")
 root.config(bg="#232323")
 root.resizable(False, False)
 root.configure(bg="#232323")
-root.title("Beemod Package Editor (STARTUP) V.2")
+root.title("Beemod Package Editor (STARTUP) V.2.3")
 
 if os.path.basename(sys.executable) == "python.exe":
     path = __file__.replace(os.path.basename(__file__),"")

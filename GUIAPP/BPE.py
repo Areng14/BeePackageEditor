@@ -3,7 +3,9 @@ from tkinter import ttk
 from tkinter import *
 from PIL import Image, ImageTk, ImageColor
 import zipfile
+from importlib import import_module
 import ast
+import json
 import assetmanager
 import log
 import numpy as np
@@ -22,6 +24,9 @@ import sys
 
 def intui():
     os.system('cls' if os.name == 'nt' else 'clear')
+
+    global root
+    global path
 
     def finditemkey():
         itemcall = selected[1:]
@@ -169,13 +174,24 @@ def intui():
                 except OSError:
                     # Directory is not empty
                     pass
+
+    global refreshtheme
+
     global theme1
     global theme2
     global theme3
     global theme4
 
     global dtheme1
+    global dtheme2
+    global dtheme3
+    global dtheme4
+
     global ltheme1
+    global ltheme2
+    global ltheme3
+    global ltheme4
+
     theme1 = "#878787"
     theme2 = "#232323"
     theme3 = "#4d4d4d"
@@ -190,6 +206,48 @@ def intui():
     dtheme2 = "#232323"
     dtheme3 = "#4d4d4d"
     dtheme4 = "#878787"
+
+    global typenum
+    global typevar
+    global menu
+    global disablebutton
+    global rmbutton
+    global vbspbutton
+    global listbox
+    global inputbutton
+    global autobutton
+    global menu_button
+    global menu_icon
+    global debugbutton
+    global frame
+    global buttone
+    global desc_box
+    global name_box
+    global button
+    global iopopup
+    global selected
+    global popup
+
+    typenum = None
+    typevar = None
+    menu = None
+    disablebutton = None
+    rmbutton = None
+    vbspbutton = None
+    listbox = None
+    inputbutton = None
+    autobutton = None
+    menu_button = None
+    menu_icon = None
+    debugbutton = None
+    frame = None
+    buttone = None
+    desc_box = None
+    name_box = None
+    button = None
+    iopopup = None
+    selected = None
+    popup = None
 
     items = []
     editor = []
@@ -288,31 +346,10 @@ def intui():
         items.append(appendthis[1])
         editor.append(appendthis[2])
         id.append(appendthis[0])
-    global typenum
-    global typevar
-    global menu
-    global disablebutton
-    global rmbutton
-    global vbspbutton
-    global listbox
-    global inputbutton
-    global autobutton
-    global menu_button
-    global menu_icon
-    global debugbutton
-    global frame
-    global buttone
-    global desc_box
-    global name_box
-    global button
-    global iopopup
-    global selected
-    global popup
     typevar = "Add Button Type"
     typenum = 1
     popup = None
     iopopup = None
-    global selected
     global root
     global fuckyouforspammingbutton
     selected = None
@@ -321,7 +358,7 @@ def intui():
     root.resizable(False, False)
     root.geometry("800x600+300+200")
     root.configure(bg=theme2)
-    root.title("Beemod Package Editor (BPE) V.2")
+    root.title("Beemod Package Editor (BPE) V.2.2")
     root.wm_iconbitmap(os.path.join(path,"imgs/","bpe.ico"))
 
     # Create a list of items
@@ -369,8 +406,6 @@ def intui():
                 matches = re.findall(r'"" "(.*?)"', blocks)
                 limit = 60
                 limited_matches = matches[:3]
-                for line in limited_matches:
-                    print(line)
                 readable_string = ' '.join(limited_matches)
                 if len(readable_string) > limit:
                     readable_string = readable_string[:limit - 3] + "..."
@@ -677,8 +712,8 @@ def intui():
                 messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
                 autobutton.config(state="normal")
 
-
-    def changetheme():
+    def refreshtheme():
+        log.loginfo("Refreshing theme")
         global theme1
         global root
         global menu
@@ -701,12 +736,58 @@ def intui():
         global theme2
         global theme3
         global theme4
-        if theme1 == "#878787":
+        buttons = [vbspbutton,inputbutton,autobutton,debugbutton,buttone,rmbutton,disablebutton]
+        for button in buttons:
+            button.configure(bg=theme3,fg=theme4)
+        name_box.configure(bg=theme2,fg=theme1)
+        listbox.configure(bg=theme2,fg=theme1)
+        menu.configure(bg=theme2,fg=theme1)
+        menu.configure(activebackground=theme1, activeforeground=theme2)
+        menu_button.configure(image=menu_icon)
+        frame.configure(bg=theme2)
+        desc_box.configure(bg=theme2,fg=theme1)
+        root.configure(bg=theme2)
+        if popup:
+            popup.configure(bg=theme2)
+            popup.update_idletasks()
+        if iopopup:
+            iopopup.configure(bg=theme2)
+            iopopup.update_idletasks()
+        root.update_idletasks()
+
+    global darkmode
+    darkmode = True
+    def changetheme():
+        global theme1
+        global darkmode
+        global root
+        global menu
+        global vbspbutton
+        global inputbutton
+        global autobutton
+        global debugbutton
+        global menu_button
+        global menu_icon
+        global frame
+        global popup
+        global rmbutton
+        global disablebutton
+        global iopopup
+        global text
+        global name_box
+        global listbox
+        global desc_box
+        global buttone
+        global theme2
+        global theme3
+        global theme4
+        if darkmode:
             log.loginfo("Changing to light mode")
             theme1 = ltheme1
             theme2 = ltheme2
             theme3 = ltheme3
             theme4 = ltheme4
+            darkmode = False
             menu_icon = ImageTk.PhotoImage(use_image("menul.png",(20,20)))
         else:
             log.loginfo("Changing to dark mode")
@@ -714,6 +795,7 @@ def intui():
             theme2 = dtheme2
             theme3 = dtheme3
             theme4 = dtheme4
+            darkmode = True
             menu_icon = ImageTk.PhotoImage(use_image("menu.png",(20,20)))
         buttons = [vbspbutton,inputbutton,autobutton,debugbutton,buttone,rmbutton,disablebutton]
         for button in buttons:
@@ -1525,6 +1607,105 @@ def intui():
             root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", ending)
+
+    #PLUGIN SUPPORT
+
+    #After all done load the plugins
+    def analyze_remove_operation(code):
+        remove_functions = ['os.remove', 'os.rmdir', 'os.unlink', 'shutil.rmtree']
+        returned = []
+        for function in remove_functions:
+            if function in code.replace(" ","").replace("\t",""):
+                returned.append(function)
+        return returned
+
+    def loadplugin(file):
+        global_vars = [
+            "typenum", "typevar", "menu", "disablebutton", "rmbutton", "vbspbutton",
+            "listbox", "inputbutton", "autobutton", "menu_button", "menu_icon",
+            "debugbutton", "frame", "buttone", "desc_box", "name_box", "button",
+            "iopopup", "selected", "popup", "theme1", "theme2", "theme3", "theme4",
+            "ltheme1", "ltheme2", "ltheme3", "ltheme4", "dtheme1", "dtheme2",
+            "dtheme3", "dtheme4", "refreshtheme", "log", "root", "packagemanager", "assetmanager", "path"
+            # Add other global variables here
+        ]
+
+        with open(file, "r") as ofile:
+            content = ofile.read()
+
+        rmdanger = analyze_remove_operation(content)
+        if rmdanger:
+            askyesno = messagebox.askyesno(
+                "Warning",
+                f"{os.path.splitext(file)[0]} is going to remove files. Are you sure you want to continue?",
+            )
+            if not askyesno:
+                return
+
+        # Execute the plugin code with restricted globals
+        exec_globals = {var: globals()[var] for var in global_vars if var in globals()}
+
+        # Import statements
+        tree = ast.parse(content)
+        import_statements = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                import_statements.append(node)
+
+        for import_node in import_statements:
+            for alias in import_node.names:
+                module_name = alias.name
+                try:
+                    imported_module = import_module(module_name)
+                    exec_globals[alias.asname if alias.asname else alias.name] = imported_module
+                except ModuleNotFoundError:
+                    module_folder = None
+                    for root, dirs, files in os.walk(file.replace("main.py","")):
+                        if alias.name + ".py" in files:
+                            module_folder = root
+                            break
+                    if module_folder:
+                        sys.path.append(module_folder)
+        try:
+            exec(content, exec_globals)
+        except Exception as error:
+            error_message = str(error)
+            error_traceback = traceback.format_exc()
+            error_info = f"Error: {error_message}\n\n{error_traceback}"
+            pyperclip.copy(error_message)
+            messagebox.showerror("Error", error_message, detail="This has been copied to the clipboard.")
+
+            sys.exit(1)
+        # Update the values of mutable objects in the global namespace
+        globals().update(exec_globals)
+    #Read plugins
+
+    #Define plugins dict
+    pluginsdict = {}
+
+    dirs = os.listdir(os.path.join(path, "plugins"))
+    if dirs:
+        askyesno = messagebox.askyesno(
+            "Warning",
+            f"Unoffical plugins can cause risks like removing files or directories or run commands.\nOnly use plugins that you trust!\nWould you like to load them anyways?",
+        )
+        if askyesno:
+            for directory in dirs:
+                dir_path = os.path.join(os.path.join(path, "plugins"), directory)
+                if os.path.isdir(dir_path):
+                    with open(os.path.join(dir_path, "info.txt")) as file:
+                        infodict = json.loads(file.read())
+
+                    infodict = {key.upper(): value for key, value in infodict.items()}
+                    log.loginfo(f"Loading {infodict['NAME']}")
+                    loadplugin(os.path.join(dir_path,"main.py"))
+                    pluginsdict[infodict['NAME']] = {"NAME" : infodict['NAME'],"DESCRIPTION" : infodict['DESCRIPTION']}
+            log.loginfo("Loaded all plugins" if dirs else "No plugins found")
+            if dirs:
+                root.title("Beemod Package Editor (BPE) V.2.2 (PLUGGED)")
+
+    refreshtheme()
 
     root.mainloop()
 
