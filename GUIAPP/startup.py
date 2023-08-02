@@ -59,43 +59,22 @@ def submit_path():
         with zipfile.ZipFile(path2, 'r') as zip_ref:
             txtfile = zip_ref.open('info.txt', 'r')
             txtlist = txtfile.read().decode().split("\n")
-        if "//" in txtlist[0]:
-            with open(os.path.join(path,"config.bpe"),"w") as config:
-                config.write(path2)
-            root.destroy()
-            if check_var.get() == 1:
-                try:
-                    fixvtf()
-                except FileNotFoundError:
-                    value = messagebox.askyesno("Error","During the patch vtf, we could not patch one of your vtfs. Would you like to load your package before it was patched?")
-                    if value:
-                        while os.path.isdir(os.path.join(path,"packages")):
-                            shutil.rmtree(os.path.join(path,"packages"), ignore_errors=True)
-                        os.makedirs(os.path.join(path,"packages"))
-                        with zipfile.ZipFile(path2, 'r') as zip_ref:
-                            txtfile = zip_ref.open('info.txt', 'r')
-                            txtlist = txtfile.read().decode().split("\n")
-            BPE.intui()
-        else:
-            result = messagebox.askyesno("Warning", "Not a BeePKG package!\nWould you like to open this anyways?\nYou may encounter errors by doing this.")
-            if result == True:
-                with open(os.path.join(path,"config.bpe"),"w") as config:
-                    config.write(path2)
-                root.destroy()
-                if check_var.get() == 1:
-                    try:
-                        fixvtf()
-                    except:
-                        value = messagebox.askyesno("Error","During the patch vtf, we could not patch one of your vtfs. Would you like to load your package before it was patched?")
-                        if value:
-                            while os.path.isdir(os.path.join(path,"packages")):
-                                shutil.rmtree(os.path.join(path,"packages"), ignore_errors=True)
-                            os.makedirs(os.path.join(path,"packages"))
-                            with zipfile.ZipFile(path2, 'r') as zip_ref:
-                                txtfile = zip_ref.open('info.txt', 'r')
-                                txtlist = txtfile.read().decode().split("\n")
-
-                BPE.intui()
+        with open(os.path.join(path,"config.bpe"),"w") as config:
+            config.write(path2)
+        root.destroy()
+        if check_var.get() == 1:
+            try:
+                fixvtf()
+            except FileNotFoundError:
+                value = messagebox.askyesno("Error","During the patch vtf, we could not patch one of your vtfs. Would you like to load your package before it was patched?")
+                if value:
+                    while os.path.isdir(os.path.join(path,"packages")):
+                        shutil.rmtree(os.path.join(path,"packages"), ignore_errors=True)
+                    os.makedirs(os.path.join(path,"packages"))
+                    with zipfile.ZipFile(path2, 'r') as zip_ref:
+                        txtfile = zip_ref.open('info.txt', 'r')
+                        txtlist = txtfile.read().decode().split("\n")
+        BPE.intui()
     except FileNotFoundError:
         froot = tk.Tk()
         froot.withdraw()

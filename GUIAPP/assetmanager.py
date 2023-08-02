@@ -6,7 +6,10 @@ import os
 import re
 import requests
 
-def finedepen(mdlfile,p2dir):
+def finedepen(mdlfile,p2dir) -> list:
+    """
+    Find a model's material dependencies
+    """
     gamefile = os.path.join(p2dir,"portal2")
     game = srctools.game.Game(gamefile)
     fsys = game.get_filesystem()
@@ -21,7 +24,10 @@ def finedepen(mdlfile,p2dir):
             returnlist.append(os.path.splitext(packfile)[0])
     return returnlist
 
-def find_blocks(text, key, pattern=r'{key}\n{{(.*?)}}'):
+def find_blocks(text, key, pattern=r'{key}\n{{(.*?)}}') -> list:
+    """
+    Find a block in code
+    """
     escaped_key = re.escape(key)
     pattern = re.compile(pattern.format(key=escaped_key), re.DOTALL)
 
@@ -31,7 +37,10 @@ def find_blocks(text, key, pattern=r'{key}\n{{(.*?)}}'):
     else:
         return None
 
-def vtext_to_json(text):
+def vtext_to_json(text) -> dict:
+    """
+    Converts vtext to a json
+    """
     props = {}
     lines = text.strip().split('\n')[2:-1]
     for line in lines:
@@ -44,7 +53,10 @@ def vtext_to_json(text):
     return {text.split('\n')[0] : props}
 #/\ Made to make dealing with editoritems.txt easier
 #\/ Made to make dealing with editoritems.txt easier
-def json_to_vtext(json):
+def json_to_vtext(json) -> str:
+    """
+    Converts json to vtext
+    """
     text = ''
     key = list(json.keys())[0]
     props = json[key]
@@ -65,15 +77,21 @@ def json_to_vtext(json):
 
 
 
-def findvalue(text,key):
+def findvalue(text,key) -> list:
+    """
+    Finds a value of a key
+    """
     pattern = re.compile(r'{}\n{{(.*?)}}'.format(key))
     return re.findall(pattern, text)
     
-def getdata(data):
+def getdata(data) -> str:
     response = requests.get(f"https://versioncontrol.areng123.repl.co/{data}")
     return response.text
 
-def format_string(string):
+def format_string(string) -> str:
+    """
+    Formats a string
+    """
     content = string.splitlines()
     indent = 0
     formatted_content = []
@@ -87,6 +105,9 @@ def format_string(string):
     return "\n".join(formatted_content)
 
 def format_file(file_path):
+    """
+    Formats a file
+    """
     with open(file_path, "r") as file:
         content = file.readlines()
     indent = 0

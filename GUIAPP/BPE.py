@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import ttk
 from tkinter import *
 from PIL import Image, ImageTk, ImageColor
 import zipfile
@@ -114,20 +113,26 @@ def intui():
 
 
     def on_select(event):
+        
         global selected
         # Get the selected item from the listbox
         selected = listbox.get(listbox.curselection())[1:]
-        itemkey = finditemkey()
-        if len(selected) <= 17:
-            newvar = selected
+        print(selected)
+        if selected != "dd Item" or selected != "--------":
+            itemkey = finditemkey()
+            if len(selected) <= 17:
+                newvar = selected
+            else:
+                newvar = selected[:17] + "..."
+            if itemsdict[itemkey][3] == True:
+                name_variable.set("[D] " + newvar)
+            else:
+                name_variable.set(newvar)
+            desc_variable.set(getdescription())
+            log.loginfo(f"Selected = {selected}")
         else:
-            newvar = selected[:17] + "..."
-        if itemsdict[itemkey][3] == True:
-            name_variable.set("[D] " + newvar)
-        else:
-            name_variable.set(newvar)
-        desc_variable.set(getdescription())
-        log.loginfo(f"Selected = {selected}")
+            messagebox.showerror("Error","This hasnt been implemented yet")
+
 
     if os.path.basename(sys.executable) == "python.exe":
         path = __file__.replace(os.path.basename(__file__),"")
@@ -298,6 +303,8 @@ def intui():
         listbox.delete(0, tk.END)
         for item in items:
             listbox.insert(tk.END, " " + item)
+        listbox.insert(tk.END,"---------") 
+        listbox.insert(tk.END,"Add Item")
         if items:
             pass
         else:
@@ -320,20 +327,11 @@ def intui():
                 with zipfile.ZipFile(path2, 'r') as zip_ref:
                     txtfile = zip_ref.open('info.txt', 'r')
                     txtlist = txtfile.read().decode().split("\n")
-                if "//" in txtlist[0]:
-                    with open(os.path.join(path,"config.bpe"),"w") as config:
-                        config.write(path2)
-                        log.loginfo(f"Changing to {os.path.basename(path2)}")
-                    name_variable.set("")
-                    refreshpack()
-                else:
-                    result = messagebox.askyesno("Warning", "Not a BeePKG package!\nWould you like to open this anyways?\nYou may encounter errors by doing this.")
-                    if result == True:
-                        with open(os.path.join(path,"config.bpe"),"w") as config:
-                            config.write(path2)
-                            log.loginfo(f"Changing to {os.path.basename(path2)}")
-                        name_variable.set("")
-                        refreshpack()
+                with open(os.path.join(path,"config.bpe"),"w") as config:
+                    config.write(path2)
+                    log.loginfo(f"Changing to {os.path.basename(path2)}")
+                name_variable.set("")
+                refreshpack()
             except Exception as error:
                 pyperclip.copy(traceback.format_exc())
                 messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
@@ -374,6 +372,8 @@ def intui():
     # Insert the items into the listbox
     for item in items:
         listbox.insert(tk.END, " " + item)
+    listbox.insert(tk.END,"---------") 
+    listbox.insert(tk.END,"Add Item")
 
     # Add a scrollbar to the frame
     scrollbar = tk.Scrollbar(frame, orient="vertical")
@@ -692,6 +692,8 @@ def intui():
                                         log.logerror(f'Could not find {os.path.splitext(os.path.basename(asset + ".vtf"))[0]} in {os.path.join(p2,f"portal2_dlc{x}",asset + extension)}')
                                     counter += 1
                                 if counter >= 999:
+              
+              
                                     errors.append(asset.lower())
                             else:
                                 packedvar += 1
@@ -1691,6 +1693,9 @@ def intui():
             f"Unoffical plugins can cause risks like removing files or directories or run commands.\nOnly use plugins that you trust!\nWould you like to load them anyways?",
         )
         if askyesno:
+            plugins_to_load = []
+            run_first_plugins = []
+
             for directory in dirs:
                 dir_path = os.path.join(os.path.join(path, "plugins"), directory)
                 if os.path.isdir(dir_path):
@@ -1698,9 +1703,24 @@ def intui():
                         infodict = json.loads(file.read())
 
                     infodict = {key.upper(): value for key, value in infodict.items()}
-                    log.loginfo(f"Loading {infodict['NAME']}")
-                    loadplugin(os.path.join(dir_path,"main.py"))
-                    pluginsdict[infodict['NAME']] = {"NAME" : infodict['NAME'],"DESCRIPTION" : infodict['DESCRIPTION']}
+
+                    if 'RUN_FIRST' in infodict and infodict['RUN_FIRST']:
+                        run_first_plugins.append((infodict['NAME'], os.path.join(dir_path, infodict['RUN_FILE'])))
+                    else:
+                        plugins_to_load.append((infodict['NAME'], os.path.join(dir_path, infodict['RUN_FILE'])))
+                        
+                    pluginsdict[infodict['NAME']] = {"NAME": infodict['NAME'], "DESCRIPTION": infodict['DESCRIPTION']}
+
+            run_first_plugins.sort(key=lambda x: x[0])  # Sort plugins alphabetically by name
+
+            for plugin_name, plugin_path in run_first_plugins:
+                log.loginfo(f"Running 'RUN_FIRST' plugin: {plugin_name}")
+                loadplugin(plugin_path)
+
+            for plugin_name, plugin_path in plugins_to_load:
+                log.loginfo(f"Loading {plugin_name}")
+                loadplugin(plugin_path)
+
             log.loginfo("Loaded all plugins" if dirs else "No plugins found")
             if dirs:
                 root.title("Beemod Package Editor (BPE) V.2.2 (PLUGGED)")
