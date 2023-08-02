@@ -99,16 +99,17 @@ def patch_vtfs(item_dict):
         os.rename(pathtoimg.replace(os.path.basename(pathtoimg),os.path.splitext(os.path.basename(pathtoimg))[0] + ".vtf"),vtfpath)
         #VTF not working properly for some reason
 
-def readfile(file):
+def readfile(file,extract=True):
     #Checks if file exists before extracting. If so remove contents
     items = {}
     beepkg = 0
     #Extracting the zip
-    with zipfile.ZipFile(file, 'r') as zip_ref:
-        try:
-            zip_ref.extractall(packagesdir)
-        except (PermissionError, FileNotFoundError) as e:
-            raise e
+    if extract:
+        with zipfile.ZipFile(file, 'r') as zip_ref:
+            try:
+                zip_ref.extractall(packagesdir)
+            except (PermissionError, FileNotFoundError) as e:
+                raise e
     #Begin to read info.txt and return information collected into a dict. Format: {INT: ID, Name, iteminfo path}
     with open(os.path.join(packagesdir,"info.txt")) as infotxt:
         linelist = infotxt.read().split("\n")

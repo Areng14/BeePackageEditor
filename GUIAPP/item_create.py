@@ -1,5 +1,6 @@
 import os
 import sys
+import log
 import srctools
 import shutil
 import traceback
@@ -12,22 +13,15 @@ if os.path.basename(sys.executable) == "python.exe":
 else:
     path = sys.executable.replace(os.path.basename(sys.executable),"")
 
+def forcedelete(dir):
+    while os.path.isdir(dir):
+        shutil.rmtree(dir, ignore_errors=True)
+
 def makedir(dir):
     try:
         os.makedirs(dir)
     except FileExistsError:
         pass
-
-"""
-Generation checklist
-
-C: Properties.txt
-C: Editoritems.txt
-C: Image
-C: VTF
-C: Instance
-C: Info.txt
-"""
 
 def makevtf(pathtopng) -> str:
     """
@@ -43,14 +37,46 @@ def makevtf(pathtopng) -> str:
         vtf.save(f)
     return vtf_path
 
+def makepkg(pkg_info,dir) -> bool:
+    """
+    Generates a package
+    Note:
+    This does NOT create the items
+    """
+    Pkgname = pkg_info["Name"]
+    Pkgid = Pkgname.lower().replace(" ","_")
+    Pkgdesc = pkg_info["Description"]
+
+    try:
+        request = requests.get("https://versioncontrol.areng123.repl.co/file/pkginfo.txt")
+        info = request.text
+
+        #Fill placeholders
+        placeholders = {
+            "pkg_id" : Pkgid,
+            "pkg_name" : Pkgname,
+            "pkg_desc" : Pkgdesc
+        }
+
+        for placeholder, value in placeholders.items():
+            info = info.replace(placeholder, str(value))
+
+        with open(os.path.join(dir,"info.txt"),"a") as infof:
+            infof.write(info)
+
+        return True
+    except:
+        return False
+
+
 def makeitem(item_info,dir) -> bool:
     """
     Requires a package to be made before running
     Make sure dir is the package dir
     """
     Itemname = item_info["Name"]
-    Itemid = Itemname.lower().replace(" ","_")
-    ItemidU = Itemname.upper().replace(" ","_")
+    Itemid = Itemname.lower().replace(" ","_").replace("'","_").replace('"',"_")
+    ItemidU = Itemname.upper().replace(" ","_").replace("'","_").replace('"',"_")
     Itemdesc = item_info["Description"].split("\n")
     Iteminst = item_info["Instance"]
     Itemicon = item_info["Icon"]
@@ -77,6 +103,7 @@ def makeitem(item_info,dir) -> bool:
             "Item_Name" : Itemname,
             "item_name" : Itemid,
             "Author_Name" : Author,
+            '"ID"  "ITEM_NAME"' : f"{ItemidU}_{Author}"
         }
 
         for placeholder, value in placeholders.items():
@@ -93,7 +120,7 @@ def makeitem(item_info,dir) -> bool:
             info = info.replace(placeholder, str(value))
 
         with open(os.path.join(dir,"info.txt"),"a") as infof:
-            infof.write(info)
+            infof.write(f"\n{info}")
 
         #Write properties.txt
         request = requests.get("https://versioncontrol.areng123.repl.co/file/properties.txt")
@@ -142,10 +169,10 @@ def makeitem(item_info,dir) -> bool:
 
     except Exception as error:
         print(traceback.format_exc())
-
-item = makeitem(iteminfo,os.path.join("testing","pkg"))
-
-if item:
-    print("Item creation sucesfull")
-else:
-    print("Item creation failed")
+        #Reverting changes
+        forcedelete(os.path.join(dir,"items",Itemid))
+        forcedelete(os.path.join(dir,"resources","BEE2","items","beepkg"))
+        forcedelete(os.path.join(dir,"resources","instances","beepkg",Itemid))
+        forcedelete(os.path.join(dir,"resources","materials","models","props_map_editor","palette","beepkg"))
+        raise error
+        return False

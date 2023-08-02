@@ -5,8 +5,10 @@ import zipfile
 from importlib import import_module
 import ast
 import json
+import item_create
 import assetmanager
 import log
+import keyboard
 import numpy as np
 from random import choice
 from srctools import Property
@@ -111,14 +113,134 @@ def intui():
         while os.path.isdir(dir):
             shutil.rmtree(dir, ignore_errors=True)
 
+    def makeitem():
+        global itemsdict
+        wmk = tk.Toplevel()
+        wmk.title("Create Item")
+        wmk.resizable(False, False)
+        wmk.geometry("256x384")
+        wmk.config(bg=theme2)
+        wmk.wm_iconbitmap(os.path.join(path, "imgs/", "bpe.ico"))
+
+        #Make boxes
+        def on_key_press_delayer(event):
+            # Allow the BackSpace and Delete keys
+            if event.keysym in ["BackSpace", "Delete"]:
+                return
+            # Allow digits and periods
+            elif not event.char.isdigit() and event.char != ".":
+                # Allow the Control-x, Control-c, and Control-v shortcuts
+                if event.keysym not in ["Control_L", "Control_R", "c", "x", "v"]:
+                    return "break"
+
+        #Information
+        wmk_name_box = tk.Label(wmk, text="Item Name", bg=theme2, fg=theme1, width=17, bd=0, font=("Arial", 8, "bold"))
+        wmk_name_box.place(x=128, y=12, anchor=CENTER)
+
+        itemname = tk.Text(wmk, height=1, width=16,font=("Arial", 8, "bold"))
+        itemname.bind("<Return>", on_key_press_delayer)
+        itemname.bind("<KP_Enter>", on_key_press_delayer)
+        itemname.bind("<Control-Return>", on_key_press_delayer)
+        itemname.place(x=128, y=32,anchor=CENTER)
+        itemname.config(bg=theme2, fg=theme1)
+
+        #Item Description
+        wmk_name_box2 = tk.Label(wmk, text="Item Description", bg=theme2, fg=theme1, width=17, bd=0, font=("Arial", 8, "bold"))
+        wmk_name_box2.place(x=128, y=64, anchor=CENTER)
+
+        itemdesc = tk.Text(wmk, height=5, width=16,font=("Arial", 8, "bold"))
+        itemdesc.place(x=128, y=115,anchor=CENTER)
+        itemdesc.config(bg=theme2, fg=theme1)
+
+        wmk_name_box3 = tk.Label(wmk, text="Item Author", bg=theme2, fg=theme1, width=17, bd=0, font=("Arial", 8, "bold"))
+        wmk_name_box3.place(x=128, y=175, anchor=CENTER)
+
+        itemauth = tk.Text(wmk, height=1, width=16,font=("Arial", 8, "bold"))
+        itemauth.bind("<Return>", on_key_press_delayer)
+        itemauth.bind("<KP_Enter>", on_key_press_delayer)
+        itemauth.bind("<Control-Return>", on_key_press_delayer)
+        itemauth.place(x=128, y=195,anchor=CENTER)
+        itemauth.config(bg=theme2, fg=theme1)
+
+        global iconfile_path
+        global instfile_path
+
+        iconfile_path = tk.StringVar()
+        instfile_path = tk.StringVar()
+
+        def getfile_icon() -> None:
+            global iconfile_path
+            file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg;*.jpeg;*.png")])
+            if file_path:
+                iconfile_path.set(file_path)
+        
+        itemiconbtn = tk.Button(wmk, text="Choose icon", command=getfile_icon, bg=theme2, fg=theme1, width=15)
+        itemiconbtn.place(x=128, y=245,anchor=CENTER)
+
+        def getfile_inst() -> None:
+            global instfile_path
+            file_path = filedialog.askopenfilename(filetypes=[("Valve Map Files", "*.vmf")])
+            if file_path:
+                instfile_path.set(file_path)
+        
+        iteminstbtn = tk.Button(wmk, text="Choose inst", command=getfile_inst, bg=theme2, fg=theme1, width=15)
+        iteminstbtn.place(x=128, y=285,anchor=CENTER)
+
+        def generate() -> None:
+            """
+            Generates a item
+            """
+            global iconfile_path,instfile_path
+
+            iteminfo = {
+                "Name": itemname.get("1.0", tk.END).strip(),
+                "Description": itemdesc.get("1.0", tk.END).strip(),
+                "Instance": instfile_path.get(),
+                "Icon": iconfile_path.get(),
+                "Author": itemauth.get("1.0", tk.END).strip().split(",")
+            }
+
+            if not iconfile_path.get():
+                iteminfo["Icon"] = os.path.join(path,"imgs","template.png")
+
+            try:
+                stat = item_create.makeitem(iteminfo,packagemanager.packagesdir)
+            except FileExistsError:
+                messagebox.showerror("Error","The item or the itemfolder already exists!")
+                wmk.destroy()
+                return
+            except ValueError:
+                iteminfo["Icon"] = os.path.join(path,"imgs","template.png")
+                stat = item_create.makeitem(iteminfo,packagemanager.packagesdir)
+            if stat and iteminfo["Icon"] != os.path.join(path,"imgs","template.png"):
+                messagebox.showinfo("Info",f'{itemname.get("1.0", tk.END)} has been made successfully.')
+                #Refresh package WITHOUT extracting
+                refreshpack(extract=False)
+                wmk.destroy()
+                return
+            elif stat and iteminfo["Icon"] == os.path.join(path,"imgs","template.png"):
+                messagebox.showinfo("Info",f'{itemname.get("1.0", tk.END)} has been made successfully.\nThe image didnt work so we changed it.')
+                #Refresh package WITHOUT extracting
+                refreshpack(extract=False)
+                wmk.destroy()
+                return
+            else:
+                messagebox.showerror("Error",f'There was an issue with creating {itemname.get("1.0", tk.END)}.\nReverting changes.')
+
+        bgenerate = tk.Button(wmk, text="Generate Item", command=generate, bg=theme2, fg=theme1, width=15)
+        bgenerate.place(x=128, y=325,anchor=CENTER)
 
     def on_select(event):
         
         global selected
         # Get the selected item from the listbox
         selected = listbox.get(listbox.curselection())[1:]
-        print(selected)
-        if selected != "dd Item" or selected != "--------":
+        if selected == "--------":
+            return
+        elif selected == "dd Item":
+            makeitem()
+            log.loginfo(f"Make Item")
+        else:
             itemkey = finditemkey()
             if len(selected) <= 17:
                 newvar = selected
@@ -130,8 +252,6 @@ def intui():
                 name_variable.set(newvar)
             desc_variable.set(getdescription())
             log.loginfo(f"Selected = {selected}")
-        else:
-            messagebox.showerror("Error","This hasnt been implemented yet")
 
 
     if os.path.basename(sys.executable) == "python.exe":
@@ -286,7 +406,7 @@ def intui():
         return image
 
     #Refresh Package
-    def refreshpack():
+    def refreshpack(extract=True):
         log.loginfo("Refreshing package!")
         global itemsdict
         items.clear()
@@ -294,7 +414,7 @@ def intui():
         id.clear()
         with open(os.path.join(path,"config.bpe"),"r") as config:
             filepath = config.read()
-            itemsdict = packagemanager.readfile(filepath)
+            itemsdict = packagemanager.readfile(filepath,extract=extract)
         for x in range(len(itemsdict) - 1):
             appendthis = itemsdict[x]
             items.append(appendthis[1])
@@ -818,14 +938,20 @@ def intui():
             iopopup.update_idletasks()
         root.update_idletasks()
 
-
+    def brefreshpack():
+        if keyboard.is_pressed("shift"):
+            log.loginfo("Reloading WITH extracting")
+            refreshpack()
+        else:
+            log.loginfo("Reloading WITHOUT extracting")
+            refreshpack(extract=False)
 
     #Utils
     menu_icon = ImageTk.PhotoImage(use_image("menu.png",(20,20)))
     menu_button = tk.Button(root, image=menu_icon, width=16, height=16, bd=0)
     menu_button.place(x=770, y=10)
     menu = tk.Menu(root, tearoff=0, bg=theme2,fg=theme1,bd=0)
-    menu.add_command(label="Reload Packages", command=refreshpack, activebackground=theme1, activeforeground=theme2)
+    menu.add_command(label="Reload Packages", command=brefreshpack, activebackground=theme1, activeforeground=theme2)
     menu.add_command(label="Change Package", command=changepack,activebackground=theme1, activeforeground=theme2)
     menu.add_separator()
     menu.add_command(label="Change Theme", command=changetheme,activebackground=theme1, activeforeground=theme2)
