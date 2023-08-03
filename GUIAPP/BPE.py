@@ -5,6 +5,7 @@ import zipfile
 from importlib import import_module
 import ast
 import json
+import subprocess
 import item_create
 import assetmanager
 import log
@@ -68,7 +69,7 @@ def submit_path(path2):
         messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
 
 prop123 = False
-if not os.path.isfile(os.path.join(os.getenv('APPDATA'),"BPE","config.txt")):
+if not os.path.isfile(os.path.join(os.getenv('APPDATA'),"BPE","config.txt")) or os.path.getsize(os.path.join(os.getenv('APPDATA'),"BPE","config.txt")) == 0:
     while not prop123:
         messagebox.showinfo("Info","Please select a package")
         file_path = filedialog.askopenfilename()
@@ -796,6 +797,125 @@ def autopack():
             pyperclip.copy(traceback.format_exc())
             messagebox.showerror("Error", traceback.format_exc(), detail= "This has been copied to the clipboard.")
             autobutton.config(state="normal")
+
+def read_plugin_state_from_file():
+    pluginsstat = {}
+
+    plugins_file_path = os.path.join(os.getenv('APPDATA'), "BPE", "plugins.txt")
+    if os.path.isfile(plugins_file_path):
+        with open(plugins_file_path, "r") as file:
+            content = file.read()
+            if content:
+                try:
+                    pluginsstat = eval(content)
+                except SyntaxError as e:
+                    log.loginfo(f"Error: Unable to load existing plugin state: {e}")
+                    log.loginfo("Resetting state to default.")
+
+    return pluginsstat
+
+def update_checkboxes_from_plugin_state(pluginsstat):
+    for plugin_name, plugin_info in pluginsdict.items():
+        enabled = pluginsstat.get(plugin_name, False)
+        checkbox_var = checkbox_vars.get(plugin_name)
+        if checkbox_var is not None:
+            if enabled:
+                checkbox_var.set(True)
+            else:
+                checkbox_var.set(False)
+
+
+def restart_program():
+    log.loginfo("Restarting program! Generating new log file.")
+    python = sys.executable
+    script = os.path.abspath(sys.argv[0])
+    subprocess.Popen([python, script])
+    sys.exit()
+
+def on_checkbox_click(plugin_name):
+    global pluginsstat
+    pluginsstat[plugin_name] = not pluginsstat.get(plugin_name, False)
+    log.loginfo(plugin_name + " is " + ("enabled" if pluginsstat[plugin_name] else "disabled"))
+
+    plugins_file_path = os.path.join(os.getenv('APPDATA'), "BPE", "plugins.txt")
+    with open(plugins_file_path, "w") as file:
+        file.write(str(pluginsstat))
+
+# Create a dictionary to store the tk.BooleanVar objects associated with each checkbox
+checkbox_vars = {}
+
+def plugindash():
+
+    global pluginsstat
+
+    #Read the old shit
+    with open(os.path.join(os.getenv('APPDATA'), "BPE", "plugins.txt"), "r") as file:
+        oldpluginstat = file.read()
+
+    def pluginon_close():
+        with open(os.path.join(os.getenv('APPDATA'), "BPE", "plugins.txt"), "r") as file:
+            newpluginstat = file.read()
+
+        if newpluginstat != oldpluginstat:
+            yesno = messagebox.askyesnocancel("Warning","Changes were detected!\nRestart the program?")
+
+            if yesno == True:
+                #Code to restart
+                restart_program()
+            if yesno == False:
+                plugindash.destroy()
+            if yesno == None:
+                pass
+        else:
+            plugindash.destroy()
+
+    def on_scroll(*args):
+        plistbox.yview(*args)
+
+    plugindash = tk.Toplevel()
+    plugindash.title("Plugins")
+    plugindash.resizable(False, False)
+    plugindash.geometry("384x384")
+
+    plugindash.config(bg=theme2)
+
+    plistbox = tk.Listbox(plugindash, bg=theme2, fg=theme1)
+    plistbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    pscrollbar = tk.Scrollbar(plugindash, command=on_scroll)
+    pscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    plistbox.config(yscrollcommand=pscrollbar.set)
+
+    pluginsstat = read_plugin_state_from_file()
+
+    for plugin_name, plugin_info in pluginsdict.items():
+        enabled = pluginsstat.get(plugin_name, False)
+        plugin_frame = tk.Frame(plistbox, background=theme2)
+        plugin_frame.pack(fill=tk.X)
+
+        # Create a tk.BooleanVar for each checkbox and store it in the checkbox_vars dictionary
+        checkbox_var = tk.BooleanVar(value=enabled)
+        checkbox_vars[plugin_name] = checkbox_var
+
+        plugin_checkbox = tk.Checkbutton(plugin_frame, text=plugin_name, variable=checkbox_var, bg=theme2, fg=theme1, command=lambda name=plugin_name: on_checkbox_click(name))
+        plugin_checkbox.pack(side=tk.LEFT)
+
+        plugin_label = tk.Label(plugin_frame, text=f":     {plugin_info['DESCRIPTION']}", anchor="w", padx=5, bg=theme2, fg=theme1)
+        plugin_label.pack(side=tk.LEFT, fill=tk.X)
+
+        # Set the initial state of the checkbox based on the value in pluginsstat
+        if enabled:
+            plugin_checkbox.select()
+        else:
+            plugin_checkbox.deselect()
+
+    # Start the Tkinter main loop
+    plugindash.protocol("WM_DELETE_WINDOW", pluginon_close)
+    tk.mainloop()
+
+
+
 def refreshtheme():
     log.loginfo("Refreshing theme")
     global theme1
@@ -914,6 +1034,8 @@ menu.add_command(label="Reload Packages", command=brefreshpack, activebackground
 menu.add_command(label="Change Package", command=changepack,activebackground=theme1, activeforeground=theme2)
 menu.add_separator()
 menu.add_command(label="Change Theme", command=changetheme,activebackground=theme1, activeforeground=theme2)
+menu.add_separator()
+menu.add_command(label="Plugins", command=plugindash,activebackground=theme1, activeforeground=theme2)
 def display_menu(event):
     menu.post(event.x_root, event.y_root)
 menu_button.bind("<Button-1>", display_menu)
@@ -970,8 +1092,8 @@ def ioedit():
                     except AttributeError:
                         pass  # Let Attribute Error pass because it means no text found.
             else:
-                print(f"No 'entity' blocks found in {instance}")
-    print(entitydict)
+                log.loginfo(f"No 'entity' blocks found in {instance}")
+    log.loginfo(entitydict)
     #Popup a UI to edit the inputs
     #Checks for entities if none handle it
     if entitydict:
@@ -1052,7 +1174,7 @@ def ioedit():
                     if re.search(r'"BEE2"\s*{\s*}', inputblock):
                         # Handle case when the input block is present but empty
                         # You can add your logic or display an error message
-                        print("Input block is present but empty")
+                        log.loginfo("Input block is present but empty")
                     else:
                         # Edit inputs
                         aoldinput = re.findall(r'"Enable_cmd""((?:[^\\"]|\\\\|\\")*)"', inputblock)
@@ -1070,8 +1192,8 @@ def ioedit():
                         else:
                             dinput = newdinput
                         bee2str = f'"Inputs"\n{{\n"BEE2"\n{{\n"Type" "AND"\n"Enable_cmd" "{ainput}"\n"Disable_cmd" "{dinput}"\n}}\n}}\n'
-                        print(inputblock)
-                        print(bee2str)
+                        log.loginfo(inputblock)
+                        log.loginfo(bee2str)
                         with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
                             file.write(assetmanager.format_string(content.replace("\t","").replace(inputblock,bee2str)))
         # Create the input activate button
@@ -1176,7 +1298,7 @@ def ioedit():
                     if re.search(r'"BEE2"\s*{\s*}', inputblock):
                         # Handle case when the input block is present but empty
                         # You can add your logic or display an error message
-                        print("Input block is present but empty")
+                        log.loginfo("Input block is present but empty")
                     else:
                         # Edit inputs
                         aoldinput = re.findall(r'"out_activate""((?:[^\\"]|\\\\|\\")*)"', inputblock)
@@ -1194,8 +1316,8 @@ def ioedit():
                         else:
                             dinput = newdinput
                         bee2str = f'"Outputs"\n{{\n"BEE2"\n{{\n"Type" "AND"\n"out_activate" "{ainput}"\n"out_deactivate" "{dinput}"\n}}\n}}\n'
-                        print(inputblock)
-                        print(bee2str)
+                        log.loginfo(inputblock)
+                        log.loginfo(bee2str)
                         with open(os.path.join(packagesdir, "items", itemsdict[itemkey][2], "editoritems.txt"), "w") as file:
                             file.write(assetmanager.format_string(content.replace("\t","").replace(inputblock,bee2str)))
         outputactivatebutton = tk.Button(iopopup, text="Add", command=outconfirmadd, font=("Arial", 8), bd=0, bg=theme3, fg=theme4,width=13)
@@ -1250,7 +1372,7 @@ def vbsp_editor():
             text.insert("1.0", file_content)
             pattern = r'"Changeinstance"\s+"(.*?)"'
             startinstance = re.findall(pattern, file_content)
-            print(startinstance)
+            log.loginfo(startinstance)
     def add_text(text_widget, text):
         current_index = text_widget.index(tk.INSERT)
         text_widget.insert(current_index, text)
@@ -1389,7 +1511,7 @@ vbspbutton.place(width=128, height=32,x=410, y=200)
 def debuger():
     log.loginfo("debugging")
     itemkey = finditemkey()
-    print(itemkey)
+    log.loginfo(itemkey)
     checklistfile = [f"/items/{itemsdict[itemkey][2]}/editoritems.txt",f"/items/{itemsdict[itemkey][2]}/properties.txt"]
     if os.path.isfile(f"/items/{itemsdict[itemkey][2]}/vbsp_config.cfg"):
         checklistfile.append(f"/items/{itemsdict[itemkey][2]}/vbsp_config.cfg")
@@ -1453,7 +1575,7 @@ def rmitem():
             if f'"ID""{itemsdict[itemkey][0]}"' in item.replace("\t","").replace(" ",""):
                 log.loginfo("Found Target")
                 with open(os.path.join(packagemanager.packagesdir,"info.txt"),"w") as file:
-                    print(item)
+                    log.loginfo(item)
                     newfile = filecontent.replace("\t","").replace(item,"")
                     file.write(assetmanager.format_string(newfile))
         log.loginfo("Removed item info from info.txt")
@@ -1577,14 +1699,18 @@ def ending():
 root.protocol("WM_DELETE_WINDOW", ending)
 #PLUGIN SUPPORT
 #After all done load the plugins
+# Function to analyze if dangerous remove operations are present in the code
 def analyze_remove_operation(code):
     remove_functions = ['os.remove', 'os.rmdir', 'os.unlink', 'shutil.rmtree']
     returned = []
     for function in remove_functions:
-        if function in code.replace(" ","").replace("\t",""):
+        if function in code.replace(" ", "").replace("\t", ""):
             returned.append(function)
     return returned
+
+# Function to load and execute the plugin code
 def loadplugin(file):
+    # Define the global variables accessible by the plugin code
     global_vars = [
         "typenum", "typevar", "menu", "disablebutton", "rmbutton", "vbspbutton",
         "listbox", "inputbutton", "autobutton", "menu_button", "menu_icon",
@@ -1627,7 +1753,7 @@ def loadplugin(file):
                 if module_folder:
                     sys.path.append(module_folder)
     try:
-        exec(content,globals(),locals())
+        exec(content, globals(), exec_globals)
     except Exception as error:
         error_message = str(error)
         error_traceback = traceback.format_exc()
@@ -1637,6 +1763,7 @@ def loadplugin(file):
         sys.exit(1)
     # Update the values of mutable objects in the global namespace
     globals().update(exec_globals)
+
 #Read plugins
 #Define plugins dict
 pluginsdict = {}
@@ -1644,32 +1771,56 @@ dirs = os.listdir(os.path.join(path, "plugins"))
 if dirs:
     askyesno = messagebox.askyesno(
         "Warning",
-        f"Unoffical plugins can cause risks like removing files or directories or run commands.\nOnly use plugins that you trust!\nWould you like to load them anyways?",
+        f"Unofficial plugins can cause risks like removing files or directories or run commands.\nOnly use plugins that you trust!\nWould you like to load them anyways?",
     )
+
     if askyesno:
         plugins_to_load = []
         run_first_plugins = []
+
         for directory in dirs:
             dir_path = os.path.join(os.path.join(path, "plugins"), directory)
+
             if os.path.isdir(dir_path):
                 with open(os.path.join(dir_path, "info.txt")) as file:
                     infodict = json.loads(file.read())
+
                 infodict = {key.upper(): value for key, value in infodict.items()}
+
                 if 'RUN_FIRST' in infodict and infodict['RUN_FIRST']:
                     run_first_plugins.append((infodict['NAME'], os.path.join(dir_path, infodict['RUN_FILE'])))
                 else:
                     plugins_to_load.append((infodict['NAME'], os.path.join(dir_path, infodict['RUN_FILE'])))
-                    
+
                 pluginsdict[infodict['NAME']] = {"NAME": infodict['NAME'], "DESCRIPTION": infodict['DESCRIPTION']}
+
         run_first_plugins.sort(key=lambda x: x[0])  # Sort plugins alphabetically by name
+
+        pluginsstat = read_plugin_state_from_file()
+
+        # Add not running plugins to pluginstat with value False
+        for plugin_name, plugin_info in pluginsdict.items():
+            if plugin_name not in pluginsstat:
+                pluginsstat[plugin_name] = False
+
+        # Load enabled plugins
         for plugin_name, plugin_path in run_first_plugins:
-            log.loginfo(f"Running 'RUN_FIRST' plugin: {plugin_name}")
-            loadplugin(plugin_path)
+            if pluginsstat.get(plugin_name, False):
+                log.loginfo(f"Running 'RUN_FIRST' plugin: {plugin_name}")
+                loadplugin(plugin_path)
+
         for plugin_name, plugin_path in plugins_to_load:
-            log.loginfo(f"Loading {plugin_name}")
-            loadplugin(plugin_path)
+            if pluginsstat.get(plugin_name, False):
+                log.loginfo(f"Loading {plugin_name}")
+                loadplugin(plugin_path)
+            else:
+                log.loginfo(f"Plugin '{plugin_name}' is disabled. Skipping.")
+
         log.loginfo("Loaded all plugins" if dirs else "No plugins found")
         if dirs:
             root.title("Beemod Package Editor (BPE) V.2.2 (PLUGGED)")
+
+pluginsstat = {plugin_name: False for plugin_name in pluginsdict}
+
 refreshtheme()
 root.mainloop()

@@ -168,7 +168,7 @@ def makeitem(item_info,dir) -> bool:
         return True
 
     except Exception as error:
-        print(traceback.format_exc())
+        log.loginfo(traceback.format_exc())
         #Reverting changes
         forcedelete(os.path.join(dir,"items",Itemid))
         forcedelete(os.path.join(dir,"resources","BEE2","items","beepkg"))

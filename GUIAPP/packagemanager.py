@@ -91,8 +91,6 @@ def patch_vtfs(item_dict):
         name = os.path.splitext(os.path.basename(pathtoimgl[x].replace('"0" ',"").replace('"',"")))[0]
         
         pathtoimg = pathtoimg.replace("\\","/")
-
-        print(f'vtex2 convert -f dxt5 "{pathtoimg}"')
         os.chdir(path)
         os.system(f'vtex2 convert --version 7.2 -f dxt5 "{pathtoimg}"')
         os.remove(vtfpath)
