@@ -1,8 +1,0 @@
-[INFO] Local Path is __file__
-[INFO] Reading C:/Users/ADMIN/Dropbox/My PC (DESKTOP-FBEPBG2)/Downloads/BEEMod 2.4.43 + UCPs (64-bit)/packages/ArengItems/ArengItems.zip
-[INFO] Finished Reading C:/Users/ADMIN/Dropbox/My PC (DESKTOP-FBEPBG2)/Downloads/BEEMod 2.4.43 + UCPs (64-bit)/packages/ArengItems/ArengItems.zip (3.81ms)
-[INFO] Starting UI
-[INFO] Creating grid
-[INFO] Loading modules
-[INFO] Loaded modules (0.04ms)
-[INFO] Started UI (0.04ms)
