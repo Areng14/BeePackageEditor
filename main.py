@@ -1,6 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import *
+import pyperclip
 import traceback
 from tkinter import filedialog,messagebox
 import ttkbootstrap as ttk
@@ -172,6 +173,17 @@ module.title("Item Commands")
 module.geometry("600x400")
 module.wm_iconbitmap(os.path.join(path,"imgs/","bpe.ico"))
 module.withdraw()
+module.protocol("WM_DELETE_WINDOW", module.withdraw)
+status_bar_frame = tk.Frame(module)
+status_bar_frame.pack(side=tk.BOTTOM, fill=tk.X)
+status_bar2 = tk.Label(status_bar_frame, text="", bd=1, relief=tk.SUNKEN, anchor=tk.W)
+status_bar2.pack(fill=tk.X)
+
+def on_hover(event, button_name):
+    status_bar2.config(text=f"{button_name.title()}")
+
+def on_leave(event):
+    status_bar2.config(text="")
 
 def run_script(script_path):
     restricted_globals = {
@@ -190,35 +202,48 @@ def run_script(script_path):
         with open(script_path, "r") as file:
             code = compile(file.read(), script_path, 'exec')
             exec(code, restricted_globals)
-    except Exception:
-        print(f"Error running script {script_path}:")
-        traceback.print_exc()
+    except Exception as error:
+        error_message = str(error)
+        error_traceback = traceback.format_exc()
+        pyperclip.copy(error_message)
+        log.logerror(error_traceback)
+        messagebox.showerror("Error", error_message, detail="This has been copied to the clipboard.")
         # Handle the exception as needed
 
 
 row = 0
 col = 0
+
+button_frame = tk.Frame(module)
+button_frame.pack(fill='both', expand=True)
+
 for plugin in os.listdir(os.path.join(path, "modules")):
     with open(os.path.join(path, "modules", plugin, "info.txt"), "r") as info:
-        plugininfo = json.load(info)
+        try:
+            plugininfo = json.load(info)
+        except json.JSONDecodeError:
+            messagebox.showerror("Error",f"Invalid Syntax!\n{plugin}")
 
         for key in list(plugininfo.keys())[1:]:
             script_info = plugininfo[key]
 
-            # Load and resize icon
             icon_path = os.path.join(path, "modules", plugin, script_info["icon"])
+            if not os.path.isfile(icon_path):
+                icon_path = os.path.join(path,"imgs","error.png")
             pil_image = Image.open(icon_path)
             pil_image = pil_image.resize((64, 64))
             icon = ImageTk.PhotoImage(pil_image)
 
-            # Create a button with the resized icon
             btn = tk.Button(module, image=icon, state=tk.DISABLED, command=lambda s=script_info["script"]: run_script(os.path.join(path, "modules", plugin, s)))
-            btn.image = icon  # Keep a reference
+            btn.image = icon
             buttons.append(btn)
-            btn.grid(row=row, column=col)
+            btn.grid(in_=button_frame, row=row, column=col)
+
+            btn.bind("<Enter>", lambda event, info=f"{plugin} - {key}": on_hover(event, info))
+            btn.bind("<Leave>", on_leave)
 
             col += 1
-            if col > 3:  # Adjust the number of columns as needed
+            if col > 3: 
                 col = 0
                 row += 1
 
@@ -226,4 +251,3 @@ log.loginfo(f'Loaded modules ({round(time.time() - trn,2)}s)')
 
 log.loginfo(f'Started UI ({round(time.time() - trn,2)}s)')
 itemmenu.mainloop()
- 

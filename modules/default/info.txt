@@ -1,11 +1,19 @@
 {
-    "Name" : "Test",
-    "Item Remover" : {
-        "script" : "script/remove.py",
-        "icon" : "icon/remove.png"
+    "Name": "Test",
+    "Item Remover": {
+        "script": "script/remove.py",
+        "icon": "icon/remove.png"
     },
-    "Item Disabler" : {
-        "script" : "script/disable.py",
-        "icon" : "icon/disable.png"
+    "Item Disabler": {
+        "script": "script/disable.py",
+        "icon": "icon/disable.png"
+    },
+    "Item VBSP": {
+        "script": "script/vbsp.py",
+        "icon": "icon/vbsp.png"
+    },
+    "Item Autopack": {
+        "script": "script/autopack.py",
+        "icon": "icon/autopack.png"
     }
 }
