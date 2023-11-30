@@ -1,0 +1,10 @@
+"Properties" {
+	"Authors" "ASDDAS"
+	"Description" {
+		"" "afsafsd"
+	}
+	"Icon"
+	{
+		"0" "beepkg/azsxc.png"
+	}
+}

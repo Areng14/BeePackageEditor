@@ -1,0 +1,11 @@
+{
+    "Name" : "Test",
+    "Item Remover" : {
+        "script" : "script/remove.py",
+        "icon" : "icon/remove.png"
+    },
+    "Item Disabler" : {
+        "script" : "script/disable.py",
+        "icon" : "icon/disable.png"
+    }
+}
