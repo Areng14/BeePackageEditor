@@ -19,5 +19,6 @@ vbsp = os.path.join(packagemanager.packagesdir,"items",item[2],"vbsp_config.cfg"
 
 if not os.path.isfile(os.path.join(packagemanager.packagesdir,"items",item[2],"vbsp_config.cfg")):
     with open(os.path.join(packagemanager.packagesdir,"items",item[2],"vbsp_config.cfg"),"w") as vvbsp:
-        vvbsp.write()
+        vvbsp.write("")
+assetmanager.format_file(os.path.join(packagemanager.packagesdir,"items",item[2],"vbsp_config.cfg"))
 open_with_default_editor(vbsp)

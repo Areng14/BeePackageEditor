@@ -1,19 +1,48 @@
 {
-    "Name": "Test",
+    "Name": "Default",
     "Item Remover": {
         "script": "script/remove.py",
-        "icon": "icon/remove.png"
+        "icon": "icon/remove.png",
+        "type" : "item"
     },
     "Item Disabler": {
         "script": "script/disable.py",
-        "icon": "icon/disable.png"
+        "icon": "icon/disable.png",
+        "type" : "item"
     },
     "Item VBSP": {
         "script": "script/vbsp.py",
-        "icon": "icon/vbsp.png"
+        "icon": "icon/vbsp.png",
+        "type" : "item"
     },
     "Item Autopack": {
         "script": "script/autopack.py",
-        "icon": "icon/autopack.png"
+        "icon": "icon/autopack.png",
+        "type" : "item"
+    },
+    #Help menu
+    "Discord": {
+        "link": "https://discord.gg/Uftu3CrT5M",
+        "tab" : "Help",
+        "group" : "help-links",
+        "type" : "menu"
+    },
+    "Tutorial": {
+        "script": "script/help/tutorial.py",
+        "tab" : "Help",
+        "group" : "help-links",
+        "type" : "menu"
+    },
+    "Github Respiratory": {
+        "link": "https://github.com/Areng14/BeePackageEditor",
+        "tab" : "Help",
+        "group" : "git-links",
+        "type" : "menu"
+    },
+    "Report an issue": {
+        "script": "https://github.com/Areng14/BeePackageEditor/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=",
+        "tab" : "Help",
+        "group" : "git-links",
+        "type" : "menu"
     }
 }

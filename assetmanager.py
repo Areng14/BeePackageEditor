@@ -75,14 +75,11 @@ def json_to_vtext(json) -> str:
     text += '}'
     return text
 
-def writeconfig(key,value):
-    global config
-    """
-    Writes to the config
-    """
-    config[key] = value
-    with open(os.path.join(os.getenv('APPDATA'),"BPE","config.cfg"),"w") as fconfig:
-        fconfig.write(json.dumps(config))
+def updateconfig(config2):
+    with open(os.path.join(os.environ.get('APPDATA'),"BPE_v3","BPE.config"),"w") as fconfig:
+        json.dump(config2, fconfig)
+    loadconfig()
+    
 
 def findvalue(text,key) -> list:
     """
@@ -133,8 +130,9 @@ config = {}
 
 def loadconfig():
     global config
-    appdata_path = os.path.join(os.getenv('APPDATA'), "BPE")
-    config_path = os.path.join(appdata_path, "config.cfg")
+    appdata_path = os.path.join(os.environ.get('APPDATA'), "BPE_v3")
+    config_path = os.path.join(appdata_path, "BPE.config")
+
 
     if not os.path.isdir(appdata_path):
         os.makedirs(appdata_path)
@@ -142,7 +140,7 @@ def loadconfig():
     if not os.path.isfile(config_path):
         config = {
             "package": "",
-            "plugins": [],
+            "plugins": {},
             "theme": 0
         }
         with open(config_path, "w") as fconfig:
@@ -154,7 +152,7 @@ def loadconfig():
             except json.JSONDecodeError:
                 config = {
                     "package": "",
-                    "plugins": [],
+                    "plugins": {},
                     "theme": 0
                 }
                 with open(config_path, "w") as f_write:

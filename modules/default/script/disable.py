@@ -1,5 +1,3 @@
-import os
-
 with open(os.path.join(packagemanager.packagesdir,"info.txt"),"r") as file:
     filecontent = file.read()
     rmitemlist = assetmanager.find_blocks(filecontent, '"Item"', r'{key}\s*{{[^}}]*}}\s*}}\s*}}\s*')
@@ -16,7 +14,8 @@ for fitem in rmitemlist:
         item = [item[0],item[1],item[2],True]
         updateitem()
         refreshitems()
-        messagebox.showinfo("Info",f"Disabled {item[1]}")
+        if itemcount == len(mselection):
+            messagebox.showinfo("Info",f"Disabled {', '.join([str(item[1]) for item in mselection])}")
 
 #Enable
 if not found:
@@ -37,4 +36,5 @@ if not found:
             item = [item[0],item[1],item[2],False]
             updateitem()
             refreshitems()
-            messagebox.showinfo("Info",f"Enabled {item[1]}")
+            if itemcount == len(mselection):
+                messagebox.showinfo("Info",f"Enabled {', '.join([str(item[1]) for item in mselection])}")
