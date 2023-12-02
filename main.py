@@ -199,7 +199,7 @@ def change_frame_color(button):
     parent_frame = button._nametowidget(parent_name)
     parent_frame.config(bg="#3ba7ff")  # Change frame color to blue
 
-def on_click(row, col, frame, ctrl=False):
+def on_click(row, col, iframe, ctrl=False):
     global selected_frame, selid, buttons, selected_frames, last_click_time
 
     current_click_time = time.time()
@@ -215,25 +215,25 @@ def on_click(row, col, frame, ctrl=False):
         if ctrl:
             if item_info in selid:
                 selid.remove(item_info)
-                if frame.winfo_exists():
-                    frame.config(bg='white')
+                if iframe.winfo_exists():
+                    iframe.config(bg='white')
                 del selected_frames[item_info[0]]
             else:
                 if item_info not in selid:
                     selid.append(item_info)
-                    if frame.winfo_exists():
-                        frame.config(bg="#3ba7ff")
-                    selected_frames[item_info[0]] = frame
+                    if iframe.winfo_exists():
+                        iframe.config(bg="#3ba7ff")
+                    selected_frames[item_info[0]] = iframe
         else:
             for id, frm in selected_frames.items():
                 if frm.winfo_exists():
                     frm.config(bg='white')
-            selected_frames = {item_info[0]: frame}
+            selected_frames = {item_info[0]: iframe}
             selid = [item_info]
-            if frame.winfo_exists():
-                frame.config(bg="#3ba7ff")
+            if iframe.winfo_exists():
+                iframe.config(bg="#3ba7ff")
 
-        selected_frame = frame
+        selected_frame = iframe
         log.loginfo(f"Selected: {selid}")
     else:
         pass
@@ -248,6 +248,7 @@ selected_frame = None
 def updateitem():
     global items
     items = packagemanager.readfile(config["package"],extract=False)
+    loadsign()
 
 first_item_frame = None
 
@@ -302,13 +303,13 @@ def refreshitems():
                     image = ImageTk.PhotoImage(resized_image)
 
                     # Create frame for each button
-                    frame = Frame(button_frame, bg='white', borderwidth=2)
+                    iframe = Frame(button_frame, bg='white', borderwidth=2)
                     if row == 0 and col == 0:
-                        first_item_frame = frame
-                    frame.grid(row=row, column=col)
+                        first_item_frame = iframe
+                    iframe.grid(row=row, column=col)
 
                     # Ensure the button doesn't cover the entire frame
-                    button = Button(frame, image=image, command=partial(on_click, row, col, frame), borderwidth=0, highlightthickness=0)
+                    button = Button(iframe, image=image, command=partial(on_click, row, col, iframe), borderwidth=0, highlightthickness=0)
                     button.image = image  # Keep a reference to avoid garbage collection
                     button.row = row
                     button.col = col
@@ -418,7 +419,7 @@ def run_script(script_path,plugin_name):
                 'filedialog' : filedialog,
                 'requests' : requests,
                 'assetmanager' : assetmanager,
-                'messagebox' : messagebox
+                'messagebox' : messagebox,
             }
 
             try:
@@ -557,6 +558,69 @@ assetmanager.updateconfig(config)
 genfilemenu()
 loadplugin()
 log.loginfo(f'Loaded modules ({round(time.time() - trn,2)}s)')
+
+#Signage Adder
+signage = tk.Toplevel()
+signage.title("Signages")
+signage.geometry(f"304x500")
+signage.resizable(False,False)
+signage.wm_iconbitmap(os.path.join(path,"imgs/","bpe.ico"))
+signage.protocol("WM_DELETE_WINDOW", signage.withdraw)
+status_bar_frame3 = ttk.Frame(signage)
+status_bar_frame3.pack(side=tk.BOTTOM, fill=tk.X)
+status_bar3 = ttk.Label(status_bar_frame3, text="", relief=tk.SUNKEN, anchor=tk.W)
+status_bar3.pack(fill=tk.X)
+
+signagedict = {}
+signagebutton = []
+
+
+def loadsign():
+    global sign_frame
+    with open(os.path.join(packagemanager.packagesdir, "info.txt"), "r") as file:
+        signagefile = assetmanager.find_blocks(file.read(), '"Signage"', r'{key}\s*{{[^}}]*}}\s*}}\s*}}\s*')
+
+    for index,signageitem in enumerate(signagefile):
+        signageitem = signageitem.replace("\t","").split("\n")
+
+        id = signageitem[2].replace('"ID" "',"").replace('"',"")
+        name = signageitem[3].replace('"Name" "',"").replace('"',"")
+        icon = signageitem[8].replace('"icon"    "',"").replace('"',"")
+        if icon == r"{":
+            icon = signageitem[9].replace('"icon"    "',"").replace('"',"")
+            overlay = signageitem[10].replace('"overlay" "',"").replace('"',"")
+        else:
+            overlay = signageitem[9].replace('"overlay" "',"").replace('"',"")
+
+        signagedict[index] = [id,name,icon,overlay]
+
+    if 'sign_frame' in globals():
+        for widget in sign_frame.winfo_children():
+            widget.destroy()
+    else:
+        # If sign_frame does not exist, create it
+        sign_frame = tk.Frame(signage)
+        sign_frame.pack(fill='both', expand=True)
+
+    num_rows = ceil((len(signagedict) + 1) / 4)
+
+    for index, (id, name, icon, overlay) in enumerate(signagedict.values()):
+        row = index // 4
+        col = index % 4
+
+        icon_path = os.path.join(packagemanager.packagesdir, "resources", "BEE2", icon)
+        pil_image = Image.open(icon_path)
+        resized_image = pil_image.resize((64, 64), Image.Resampling.LANCZOS)
+        tk_image = ImageTk.PhotoImage(resized_image)
+
+        button = tk.Button(sign_frame, image=tk_image, highlightthickness=0)
+        button.image = tk_image  # Keep a reference to avoid garbage collection
+        button.grid(row=row, column=col, padx=5, pady=5)
+
+    sign_frame.grid_propagate(False)
+    sign_frame.config(width=4 * 70, height=num_rows * 70)
+
+loadsign()
 
 log.loginfo(f'Started UI ({round(time.time() - trn,2)}s)')
 on_click(0, 0, first_item_frame, ctrl=False)
