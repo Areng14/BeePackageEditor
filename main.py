@@ -441,6 +441,9 @@ menubar = None
 def showmodule():
     module.deiconify()
 
+def showsign():
+    signage.deiconify()
+
 def genfilemenu():
     global menubar
     #File menu
@@ -458,6 +461,8 @@ def genfilemenu():
 
     viewmenu = tk.Menu(menubar, tearoff=0)
     viewmenu.add_command(label="Show Item Menu", command=showmodule)
+    viewmenu.add_command(label="Show Signage Menu", command=showsign)
+
     menubar.add_cascade(label="View", menu=viewmenu)
 
     itemmenu.config(menu=menubar)
@@ -574,6 +579,80 @@ status_bar3.pack(fill=tk.X)
 signagedict = {}
 signagebutton = []
 
+def findsignkey(id):
+    itemcall = id
+    for x in signagedict:
+        if itemcall in signagedict[x][0]:
+            return x
+
+def get_signage_block(signage_id):
+    return (
+        '"Signage"\n'
+        '\t{\n'
+        f'\t"ID" "{signage_id[0]}"\n'
+        f'\t"Name" "{signage_id[1]}"\n'
+        '\t"Styles"\n'
+        '\t\t{\n'
+        '\t\t"BEE2_CLEAN"\n'
+        '\t\t\t{\n'
+        f'\t\t\t"icon"    "{signage_id[2]}"\n'
+        f'\t\t\t"overlay" "{signage_id[3]}"\n'
+        '\t\t\t}\n'
+        '\t\t}\n'
+        '\t}\n'
+    )
+
+def makevtf(pathtopng):
+    VTFTarget = Image.open(pathtopng)
+    width, height = VTFTarget.size
+    vtf = srctools.VTF(width, height)
+    vtf.get().copy_from(VTFTarget.tobytes())
+    vtf_path = os.path.join(path,pathtopng.replace(os.path.basename(pathtopng), ""),os.path.splitext(os.path.basename(pathtopng))[0]+".vtf")
+    with open(vtf_path, "wb") as f:
+        vtf.save(f)
+
+def chooseimage(signage_data):
+    print(signage_data)
+    key = findsignkey(signage_data[0])
+    image_file = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg;*.jpeg;*.png")])
+    if not image_file:
+        return
+
+    #Start
+    #Copy image to bee2/signage folder
+    try:
+        os.makedirs(os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage"))
+    except FileExistsError:
+        pass
+    shutil.copy(image_file,os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage",os.path.basename(image_file)))
+
+    pil_image = Image.open(os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage", os.path.basename(image_file)))
+    resized_image = pil_image.resize((64, 64), Image.Resampling.LANCZOS)
+    rgba_image = resized_image.convert('RGBA')
+    rgba_image_path = os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage", os.path.basename(image_file))
+    rgba_image.save(rgba_image_path)
+
+    makevtf(os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage",os.path.basename(image_file)))
+    os.rename(os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage",f"{os.path.splitext(os.path.basename(image_file))[0]}.vtf"),os.path.join(packagemanager.packagesdir, "resources", "materials", "signage", f"{os.path.splitext(os.path.basename(image_file))[0]}.vtf"))
+    with open(os.path.join(packagemanager.packagesdir, "resources", "materials", "signage", f"{os.path.splitext(os.path.basename(image_file))[0]}.vmt"),"w") as vmt:
+        vmt.write('"LightmappedGeneric"\n{\n$basetexture "signage/VTF.HERE"\n$surfaceprop glass\n$selfillum 1\n$decal 1\n%nopaint 1\n%noportal 1\n"%keywords" portal2\n}'.replace("VTF.HERE",f"{os.path.splitext(os.path.basename(image_file))[0]}.vtf"))
+
+
+
+    newdata = [signage_data[0],signage_data[1],f"signage/{os.path.basename(image_file)}",f'signage/{f"{os.path.splitext(os.path.basename(image_file))[0]}.vtf"}']
+
+    with open(os.path.join(packagemanager.packagesdir, "info.txt"), "r") as file:
+        file_content = file.read()
+
+    updated_content = file_content.replace(get_signage_block(signage_data), get_signage_block(newdata))
+
+    with open(os.path.join(packagemanager.packagesdir, "info.txt"), "w") as file:
+        file.write(updated_content)
+
+    assetmanager.format_file(os.path.join(packagemanager.packagesdir, "info.txt"))
+
+    loadsign()
+
 
 def loadsign():
     global sign_frame
@@ -613,8 +692,9 @@ def loadsign():
         resized_image = pil_image.resize((64, 64), Image.Resampling.LANCZOS)
         tk_image = ImageTk.PhotoImage(resized_image)
 
-        button = tk.Button(sign_frame, image=tk_image, highlightthickness=0)
-        button.image = tk_image  # Keep a reference to avoid garbage collection
+        button = tk.Button(sign_frame, image=tk_image, highlightthickness=0, 
+                           command=lambda data=(id, name, icon, overlay): chooseimage(data))
+        button.image = tk_image
         button.grid(row=row, column=col, padx=5, pady=5)
 
     sign_frame.grid_propagate(False)
