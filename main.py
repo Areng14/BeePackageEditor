@@ -8,6 +8,8 @@ from math import ceil
 import traceback
 import keyboard
 from tkinter import filedialog,messagebox
+from pypresence import Presence
+import threading
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from tkinter import PhotoImage, ttk, Button
@@ -34,7 +36,46 @@ else:
     path = sys.executable.replace(os.path.basename(sys.executable),"")
     log.loginfo(f"Local Path is sys.executable")
 
+def reset_idle_timer(event=None):
+    global last_interaction_time
+    last_interaction_time = time.time()
 
+def check_idle_state():
+    global last_interaction_time, is_idle
+    current_time = time.time()
+    if current_time - last_interaction_time > idle_threshold:
+        if not is_idle:
+            is_idle = True
+    else:
+        if is_idle:
+            is_idle = False
+    itemmenu.after(1000, check_idle_state)  # Check every second
+
+def discord_rich_presence():
+    global config, is_idle
+    with open(os.path.join(path, "discordRP.txt"), "r") as file:
+        client_id = file.read().strip()
+
+    RPC = Presence(client_id)
+    RPC.connect()
+
+    version_text = f"Beemod Package Editor {ver}"
+
+    RPC.update(
+        details="Editing a package",
+        state=f'Editing {os.path.splitext(os.path.basename(config["package"]))[0]} ({"Idling" if is_idle else "Active"})',
+        large_image="default",
+        large_text=version_text
+    )
+
+    while True:
+        RPC.update(
+            details="Editing a package", 
+            state=f'Editing {os.path.splitext(os.path.basename(config["package"]))[0]} ({"Idling" if is_idle else "Active"})',
+            large_image="default",
+            large_text=version_text
+        )
+        time.sleep(15)
 
 assetmanager.loadconfig()
 
@@ -91,11 +132,21 @@ if not os.path.isdir(os.path.join(path,"modules")):
     os.makedirs(os.path.join(path,"modules"))
 
 log.loginfo(f'Starting UI')
+threading.Thread(target=discord_rich_presence, daemon=True).start()
 trn = time.time()
 itemmenu = tk.Tk()
 itemmenu.title(f"Item Select")
 itemmenu.resizable(False,False)
 itemmenu.wm_iconbitmap(os.path.join(path,"imgs/","bpe.ico"))
+
+last_interaction_time = time.time()
+idle_threshold = 60
+is_idle = False
+
+itemmenu.bind("<Any-KeyPress>", reset_idle_timer)
+itemmenu.bind("<Any-Motion>", reset_idle_timer)
+
+itemmenu.after(1000, check_idle_state)
 
 def openpkg():
     global items
@@ -114,6 +165,8 @@ def openpkg():
         messagebox.showerror("Error", error_traceback, detail="This has been copied to the clipboard.")
     updateitem()
     refreshitems()
+    loadsign()
+    loadstyle()
     log.loginfo(f'Finished Reading {config["package"]} ({round(time.time() - trn,2)}s)')
     status_bar = ttk.Label(itemmenu, text="No item selected", relief=tk.SUNKEN, anchor=tk.W)
 
@@ -122,6 +175,8 @@ def reloadpkg():
     items = packagemanager.readfile(config["package"],extract=True)
     updateitem()
     refreshitems()
+    loadsign()
+    loadstyle()
     log.loginfo("Reload Finished")
 
 def savepkg():
@@ -248,7 +303,6 @@ selected_frame = None
 def updateitem():
     global items
     items = packagemanager.readfile(config["package"],extract=False)
-    loadsign()
 
 first_item_frame = None
 
@@ -256,6 +310,9 @@ firsttime = 0
 
 def refreshitems():
     global sorted_items, selected_frame, items, first_item_frame, firsttime
+    if not items:
+        return
+    
     try:
 
         # Destroy all frames before creating new ones
@@ -402,6 +459,7 @@ def run_script(script_path,plugin_name):
                 "itemcount" : index,
                 'updateitem' : updateitem,
                 'refreshitems' : refreshitems,
+                'loadsign' : loadsign,
                 "item" : sselid,
                 "plugin_name" : plugin_name,
                 "get_plugin_data" : retreive_pdata,
@@ -776,11 +834,29 @@ def chooseimage(signage_data):
 
     loadsign()
 
+def on_hover_sign(event, button_name):
+    status_bar3.config(text=f"{button_name[1]}")
+
+def on_leave_sign(event):
+    status_bar3.config(text="")
 
 def loadsign():
     global sign_frame
     with open(os.path.join(packagemanager.packagesdir, "info.txt"), "r") as file:
         signagefile = assetmanager.find_blocks(file.read(), '"Signage"', r'{key}\s*{{[^}}]*}}\s*}}\s*}}\s*')
+
+    if 'sign_frame' in globals():
+        for widget in sign_frame.winfo_children():
+            widget.destroy()
+    else:
+        # If sign_frame does not exist, create it
+        sign_frame = tk.Frame(signage)
+        sign_frame.pack(fill='both', expand=True)
+
+    if not signagefile:
+        return
+
+    signagedict = {}
 
     for index,signageitem in enumerate(signagefile):
         signageitem = signageitem.replace("\t","").split("\n")
@@ -800,22 +876,18 @@ def loadsign():
 
         signagedict[index] = [id,name,sec,icon,overlay]
 
-    if 'sign_frame' in globals():
-        for widget in sign_frame.winfo_children():
-            widget.destroy()
-    else:
-        # If sign_frame does not exist, create it
-        sign_frame = tk.Frame(signage)
-        sign_frame.pack(fill='both', expand=True)
-
     num_rows = ceil((len(signagedict) + 1) / 4)
 
     for index, (id, name, sec, icon, overlay) in enumerate(signagedict.values()):
         row = index // 4
         col = index % 4
 
-        icon_path = os.path.join(packagemanager.packagesdir, "resources", "BEE2", icon)
-        pil_image = Image.open(icon_path)
+        try:
+            icon_path = os.path.join(packagemanager.packagesdir, "resources", "BEE2", icon)
+            pil_image = Image.open(icon_path)
+        except FileNotFoundError:
+            icon_path = os.path.join(path,"imgs","error.png")
+            pil_image = Image.open(icon_path)
         resized_image = pil_image.resize((64, 64), Image.Resampling.LANCZOS)
         tk_image = ImageTk.PhotoImage(resized_image)
 
@@ -823,12 +895,118 @@ def loadsign():
                            command=lambda data=(id, name, sec, icon, overlay): chooseimage(data))
         button.bind('<Button-3>', lambda event, data=(id, name, sec, icon, overlay): delete_sign(event, data))
         button.image = tk_image
+        button.bind("<Enter>", lambda event, data=(id, name, sec, icon, overlay): on_hover_sign(event, data))
+        button.bind("<Leave>", on_leave_sign)
         button.grid(row=row, column=col, padx=5, pady=5)
 
     sign_frame.grid_propagate(False)
     sign_frame.config(width=4 * 70, height=num_rows * 70)
 
 loadsign()
+
+#Styles AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+stylemenu = tk.Toplevel()
+stylemenu.title("Styles")
+stylemenu.geometry(f"304x500")
+stylemenu.resizable(False,False)
+stylemenu.wm_iconbitmap(os.path.join(path,"imgs/","bpe.ico"))
+stylemenu.protocol("WM_DELETE_WINDOW", stylemenu.withdraw)
+status_bar_frame4 = ttk.Frame(stylemenu)
+status_bar_frame4.pack(side=tk.BOTTOM, fill=tk.X)
+status_bar4 = ttk.Label(status_bar_frame4, text="", relief=tk.SUNKEN, anchor=tk.W)
+status_bar4.pack(fill=tk.X)
+
+styledict = {}
+
+def choose_style(data):
+    print(data)
+
+def on_hover_style(event, index):
+    status_bar4.config(text=f"{styledict[index]['Name']}")
+
+def on_leave_style(event):
+    status_bar4.config(text="")
+
+def loadstyle():
+    global style_frame
+    global styledict
+
+    # Define a regex pattern to capture "Style" blocks
+    style_pattern = r'"Style"\s*\{(.*?(?:\{.*?\}.*?)*?)\n\s*\}'
+
+    style_file_path = os.path.join(packagemanager.packagesdir, "info.txt")
+    if not os.path.exists(style_file_path):
+        print(f"File not found: {style_file_path}")
+        return
+
+    with open(style_file_path, "r") as file:
+        content = file.read()
+
+    style_blocks = re.findall(style_pattern, content, re.DOTALL)
+
+    if 'style_frame' in globals():
+        for widget in style_frame.winfo_children():
+            widget.destroy()
+    else:
+        style_frame = tk.Frame(stylemenu)
+        style_frame.pack(fill='both', expand=True)
+
+    if not style_blocks:
+        print("No style blocks found")
+        return
+
+    styledict = {}
+
+    for index, block in enumerate(style_blocks):
+        lines = block.split("\n")
+        style_data = {
+            'ID': get_value(lines, '"ID"'),
+            'Name': get_value(lines, '"Name"'),
+            'Folder': get_value(lines, '"Folder"'),
+            'Icon': get_value(lines, '"Icon"'),
+            'IconLarge': get_value(lines, '"IconLarge"'),
+            'Group': get_value(lines, '"Group"'),
+            'ShortName': get_value(lines, '"ShortName"'),
+            'Base': get_value(lines, '"Base"')
+        }
+        styledict[index] = style_data
+
+    for index, (id, name, folder, icon, icon_large, group, short_name, base) in enumerate(styledict.values()):
+        row = index // 4
+        col = index % 4
+
+        try:
+            icon_path = os.path.join(packagemanager.packagesdir, "resources", "BEE2", styledict[index]['Icon'])
+            print(icon_path)
+            pil_image = Image.open(icon_path)
+        except FileNotFoundError:
+            icon_path = os.path.join(path, "imgs", "error.png")
+            pil_image = Image.open(icon_path)
+        
+        resized_image = pil_image.resize((64, 64), Image.Resampling.LANCZOS)
+        tk_image = ImageTk.PhotoImage(resized_image)
+
+        button_data = (id, name, folder, icon, icon_large, group, short_name, base)
+        button = tk.Button(style_frame, image=tk_image, highlightthickness=0,
+                        command=choose_style(button_data))
+        button.image = tk_image
+        button.bind("<Enter>", lambda event, index=index: on_hover_style(event, index))
+        button.bind("<Leave>", on_leave_style)
+        button.grid(row=row, column=col, padx=5, pady=5)
+
+    style_frame.grid_propagate(False)
+    # Adjust the width and height as needed
+    style_frame.config(width=4 * 70, height=(len(styledict) // 4 + 1) * 70)
+
+def get_value(lines, key):
+    for line in lines:
+        if key in line:
+            parts = line.split('"')
+            if len(parts) > 2:
+                return parts[-2].strip()
+    return ""
+
+loadstyle()
 
 log.loginfo(f'Started UI ({round(time.time() - trn,2)}s)')
 on_click(0, 0, first_item_frame, ctrl=False)
