@@ -444,6 +444,59 @@ def showmodule():
 def showsign():
     signage.deiconify()
 
+def newitem():
+    pass
+
+def newsign():
+    image_file = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg;*.jpeg;*.png")])
+    if not image_file:
+        return
+
+    try:
+        os.makedirs(os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage"))
+    except FileExistsError:
+        pass
+    shutil.copy(image_file,os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage",os.path.basename(image_file)))
+
+    pil_image = Image.open(os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage", os.path.basename(image_file)))
+    resized_image = pil_image.resize((64, 64), Image.Resampling.LANCZOS)
+    if has_transparency(resized_image):
+        signage_frame = messagebox.askyesno("Signage","Would you like to add the signage background to your image?")
+        if signage_frame:
+            background = Image.open(os.path.join(path,"imgs","signage_blank.png"))
+            resized_image = pil_image.resize((48, 48), Image.Resampling.LANCZOS)
+            if background.mode != 'RGBA':
+                background = background.convert('RGBA')
+            if resized_image.mode != 'RGBA':
+                resized_image = resized_image.convert('RGBA')
+
+            alpha_mask = resized_image.split()[3]
+
+            x = (background.width - resized_image.width) // 2
+            y = (background.height - resized_image.height) // 2
+
+            background.paste(resized_image, (x, y), alpha_mask)
+            resized_image = background
+    rgba_image_path = os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage", os.path.basename(image_file))
+    resized_image.save(rgba_image_path)
+
+    name = os.path.splitext(os.path.basename(image_file))[0].replace("_"," ").title()
+    id = os.path.splitext(os.path.basename(image_file))[0].replace(" ","_").upper()
+
+    newdata = [id,name,None,f"signage/{os.path.basename(image_file)}",f'signage/{f"{os.path.splitext(os.path.basename(image_file))[0]}.vtf"}']
+
+    with open(os.path.join(packagemanager.packagesdir, "info.txt"), "r") as file:
+        file_content = file.read()
+
+    updated_content = file_content + f"\n{get_signage_block(newdata)}"
+
+    with open(os.path.join(packagemanager.packagesdir, "info.txt"), "w") as file:
+        file.write(updated_content)
+
+    assetmanager.format_file(os.path.join(packagemanager.packagesdir, "info.txt"))
+
+    loadsign()
+
 def genfilemenu():
     global menubar
     #File menu
@@ -459,10 +512,18 @@ def genfilemenu():
     filemenu.add_command(label="Exit", command=itemmenu.quit)
     menubar.add_cascade(label="File", menu=filemenu)
 
+    editmenu = tk.Menu(menubar, tearoff=0)
+    new_menu = tk.Menu(editmenu, tearoff=0)
+    editmenu.add_cascade(label="New", menu=new_menu)
+    
+    new_menu.add_command(label="New Item", command=newitem)
+    new_menu.add_command(label="New Signage", command=newsign)
+
+    menubar.add_cascade(label="Edit", menu=editmenu)
+
     viewmenu = tk.Menu(menubar, tearoff=0)
     viewmenu.add_command(label="Show Item Menu", command=showmodule)
     viewmenu.add_command(label="Show Signage Menu", command=showsign)
-
     menubar.add_cascade(label="View", menu=viewmenu)
 
     itemmenu.config(menu=menubar)
@@ -586,21 +647,39 @@ def findsignkey(id):
             return x
 
 def get_signage_block(signage_id):
-    return (
-        '"Signage"\n'
-        '\t{\n'
-        f'\t"ID" "{signage_id[0]}"\n'
-        f'\t"Name" "{signage_id[1]}"\n'
-        '\t"Styles"\n'
-        '\t\t{\n'
-        '\t\t"BEE2_CLEAN"\n'
-        '\t\t\t{\n'
-        f'\t\t\t"icon"    "{signage_id[2]}"\n'
-        f'\t\t\t"overlay" "{signage_id[3]}"\n'
-        '\t\t\t}\n'
-        '\t\t}\n'
-        '\t}\n'
-    )
+    if signage_id[2]:
+        return (
+            '"Signage"\n'
+            '\t{\n'
+            f'\t"ID" "{signage_id[0]}"\n'
+            f'\t"Name" "{signage_id[1]}"\n'
+            f'\t"Secondary" "{signage_id[2]}"\n'
+            '\t"Styles"\n'
+            '\t\t{\n'
+            '\t\t"BEE2_CLEAN"\n'
+            '\t\t\t{\n'
+            f'\t\t\t"icon"    "{signage_id[3]}"\n'
+            f'\t\t\t"overlay" "{signage_id[4]}"\n'
+            '\t\t\t}\n'
+            '\t\t}\n'
+            '\t}\n'
+        )
+    else:
+        return (
+            '"Signage"\n'
+            '\t{\n'
+            f'\t"ID" "{signage_id[0]}"\n'
+            f'\t"Name" "{signage_id[1]}"\n'
+            '\t"Styles"\n'
+            '\t\t{\n'
+            '\t\t"BEE2_CLEAN"\n'
+            '\t\t\t{\n'
+            f'\t\t\t"icon"    "{signage_id[3]}"\n'
+            f'\t\t\t"overlay" "{signage_id[4]}"\n'
+            '\t\t\t}\n'
+            '\t\t}\n'
+            '\t}\n'
+        )
 
 def makevtf(pathtopng):
     VTFTarget = Image.open(pathtopng)
@@ -611,9 +690,37 @@ def makevtf(pathtopng):
     with open(vtf_path, "wb") as f:
         vtf.save(f)
 
+def delete_sign(event, signage_data):
+    if not messagebox.askyesno("Warning",f"You are about to remove {signage_data[1]} peramently.\nAre you sure you want to do this?"):
+        return
+
+    os.remove(os.path.join(packagemanager.packagesdir, "resources", "BEE2", f"{signage_data[3]}"))
+    os.remove(os.path.join(packagemanager.packagesdir, "resources", "materials", "signage", f"{os.path.basename(signage_data[4])}.vtf"))
+
+    try:
+        os.remove(os.path.join(packagemanager.packagesdir, "resources", "materials", "signage", f"{os.path.basename(signage_data[4])}.vmt"))
+    except FileNotFoundError:
+        pass
+
+    with open(os.path.join(packagemanager.packagesdir, "info.txt"), "r") as file:
+        file_content = file.read()
+
+    updated_content = file_content.replace(get_signage_block(signage_data), "")
+
+    with open(os.path.join(packagemanager.packagesdir, "info.txt"), "w") as file:
+        file.write(updated_content)
+
+    assetmanager.format_file(os.path.join(packagemanager.packagesdir, "info.txt"))
+
+    loadsign()
+
+def has_transparency(image):
+    try:
+        return image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info)
+    except IOError:
+        return False
+
 def chooseimage(signage_data):
-    print(signage_data)
-    key = findsignkey(signage_data[0])
     image_file = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg;*.jpeg;*.png")])
     if not image_file:
         return
@@ -628,9 +735,25 @@ def chooseimage(signage_data):
 
     pil_image = Image.open(os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage", os.path.basename(image_file)))
     resized_image = pil_image.resize((64, 64), Image.Resampling.LANCZOS)
-    rgba_image = resized_image.convert('RGBA')
+    if has_transparency(resized_image):
+        signage_frame = messagebox.askyesno("Signage","Would you like to add the signage background to your image?")
+        if signage_frame:
+            background = Image.open(os.path.join(path,"imgs","signage_blank.png"))
+            resized_image = pil_image.resize((48, 48), Image.Resampling.LANCZOS)
+            if background.mode != 'RGBA':
+                background = background.convert('RGBA')
+            if resized_image.mode != 'RGBA':
+                resized_image = resized_image.convert('RGBA')
+
+            alpha_mask = resized_image.split()[3]
+
+            x = (background.width - resized_image.width) // 2
+            y = (background.height - resized_image.height) // 2
+
+            background.paste(resized_image, (x, y), alpha_mask)
+            resized_image = background
     rgba_image_path = os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage", os.path.basename(image_file))
-    rgba_image.save(rgba_image_path)
+    resized_image.save(rgba_image_path)
 
     makevtf(os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage",os.path.basename(image_file)))
     os.rename(os.path.join(packagemanager.packagesdir, "resources", "BEE2", "signage",f"{os.path.splitext(os.path.basename(image_file))[0]}.vtf"),os.path.join(packagemanager.packagesdir, "resources", "materials", "signage", f"{os.path.splitext(os.path.basename(image_file))[0]}.vtf"))
@@ -639,7 +762,7 @@ def chooseimage(signage_data):
 
 
 
-    newdata = [signage_data[0],signage_data[1],f"signage/{os.path.basename(image_file)}",f'signage/{f"{os.path.splitext(os.path.basename(image_file))[0]}.vtf"}']
+    newdata = [signage_data[0],signage_data[1],None,f"signage/{os.path.basename(image_file)}",f'signage/{f"{os.path.splitext(os.path.basename(image_file))[0]}.vtf"}']
 
     with open(os.path.join(packagemanager.packagesdir, "info.txt"), "r") as file:
         file_content = file.read()
@@ -665,13 +788,17 @@ def loadsign():
         id = signageitem[2].replace('"ID" "',"").replace('"',"")
         name = signageitem[3].replace('"Name" "',"").replace('"',"")
         icon = signageitem[8].replace('"icon"    "',"").replace('"',"")
+        if '"Secondary" ' in signageitem[4]:
+            sec = signageitem[4].replace('"Secondary" ',"").replace('"',"")
+        else:
+            sec = None
         if icon == r"{":
             icon = signageitem[9].replace('"icon"    "',"").replace('"',"")
             overlay = signageitem[10].replace('"overlay" "',"").replace('"',"")
         else:
             overlay = signageitem[9].replace('"overlay" "',"").replace('"',"")
 
-        signagedict[index] = [id,name,icon,overlay]
+        signagedict[index] = [id,name,sec,icon,overlay]
 
     if 'sign_frame' in globals():
         for widget in sign_frame.winfo_children():
@@ -683,7 +810,7 @@ def loadsign():
 
     num_rows = ceil((len(signagedict) + 1) / 4)
 
-    for index, (id, name, icon, overlay) in enumerate(signagedict.values()):
+    for index, (id, name, sec, icon, overlay) in enumerate(signagedict.values()):
         row = index // 4
         col = index % 4
 
@@ -693,7 +820,8 @@ def loadsign():
         tk_image = ImageTk.PhotoImage(resized_image)
 
         button = tk.Button(sign_frame, image=tk_image, highlightthickness=0, 
-                           command=lambda data=(id, name, icon, overlay): chooseimage(data))
+                           command=lambda data=(id, name, sec, icon, overlay): chooseimage(data))
+        button.bind('<Button-3>', lambda event, data=(id, name, sec, icon, overlay): delete_sign(event, data))
         button.image = tk_image
         button.grid(row=row, column=col, padx=5, pady=5)
 
