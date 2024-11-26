@@ -48,7 +48,7 @@ def makepkg(pkg_info,dir) -> bool:
     Pkgdesc = pkg_info["Description"]
 
     try:
-        request = requests.get("https://versioncontrol.areng123.repl.co/file/pkginfo.txt")
+        request = requests.get("https://versioncontrol-areng123.replit.app/file/pkginfo.txt")
         info = request.text
 
         #Fill placeholders
@@ -93,7 +93,7 @@ def makeitem(item_info,dir) -> bool:
         #Make editoritems.txt
 
         #Get template editoritems.txt
-        request = requests.get("https://versioncontrol.areng123.repl.co/file/editoritems.txt")
+        request = requests.get("https://versioncontrol-areng123.replit.app/file/editoritems.txt")
         editoritems = request.text
 
         #Fill placeholders
@@ -113,7 +113,7 @@ def makeitem(item_info,dir) -> bool:
             editor.write(editoritems)
 
         #Add thing to info.txt
-        request = requests.get("https://versioncontrol.areng123.repl.co/file/info.txt")
+        request = requests.get("https://versioncontrol-areng123.replit.app/file/info.txt")
         info = request.text
 
         for placeholder, value in placeholders.items():
@@ -123,7 +123,7 @@ def makeitem(item_info,dir) -> bool:
             infof.write(f"\n{info}")
 
         #Write properties.txt
-        request = requests.get("https://versioncontrol.areng123.repl.co/file/properties.txt")
+        request = requests.get("https://versioncontrol-areng123.replit.app/file/properties.txt")
         properties = request.text
 
         #Fill placeholders

@@ -97,7 +97,7 @@ packlist.extend(dependentassets)
 #Remove duplicate
 packlist = list(set(packlist))
 
-baseassets = requests.get("https://versioncontrol.areng123.repl.co/data/baseassets")
+baseassets = requests.get("https://versioncontrol-areng123.replit.app/data/baseassets")
 baseassets = baseassets.text.replace(" ","").replace("'","").split(",")
 for x in range(len(packlist)):
     if os.path.splitext(os.path.basename(packlist[x]))[0].upper() in baseassets:
