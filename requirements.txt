@@ -1,0 +1,9 @@
+pillow
+pyperclip
+keyboard
+pypresence
+ttkbootstrap
+srctools
+vpk
+numpy
+requests
